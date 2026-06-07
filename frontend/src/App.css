@@ -1,4 +1,161 @@
-.counter {
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+  color: #1f2937;
+}
+
+.app {
+  min-height: 100vh;
+}
+
+.header {
+  background: #111827;
+  color: white;
+  padding: 30px;
+  text-align: center;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 32px;
+}
+
+.header p {
+  color: #d1d5db;
+}
+
+.search-bar {
+  margin: 25px auto 0;
+  display: flex;
+  max-width: 700px;
+  gap: 10px;
+}
+
+.search-bar input {
+  flex: 1;
+  padding: 14px;
+  border-radius: 8px;
+  border: none;
+  font-size: 16px;
+}
+
+.search-bar button {
+  padding: 14px 24px;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.search-bar button:disabled {
+  background: #6b7280;
+  cursor: not-allowed;
+}
+
+.main-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr 360px;
+  gap: 20px;
+  padding: 20px;
+}
+
+.results-section,
+.graph-section,
+.details-section {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  min-height: 650px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.results-section {
+  overflow-y: auto;
+}
+
+.paper-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.paper-card:hover {
+  background: #eff6ff;
+  border-color: #2563eb;
+}
+
+.paper-card h3 {
+  font-size: 15px;
+  margin-top: 0;
+}
+
+.paper-card p {
+  font-size: 13px;
+  margin: 6px 0;
+}
+
+.graph-container {
+  width: 100%;
+  height: 600px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+}
+
+.graph-placeholder {
+  height: 600px;
+  border: 2px dashed #d1d5db;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+}
+
+.details-panel h2 {
+  margin-top: 0;
+}
+
+.details-panel p {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.abstract {
+  max-height: 250px;
+  overflow-y: auto;
+  background: #f9fafb;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.empty-text {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+@media (max-width: 1100px) {
+  .main-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .results-section,
+  .graph-section,
+  .details-section {
+    min-height: auto;
+  }
+}
+/* .counter {
   font-size: 16px;
   padding: 5px 10px;
   border-radius: 5px;
@@ -181,4 +338,4 @@
     right: 0;
     border-right-color: var(--border);
   }
-}
+} */
