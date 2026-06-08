@@ -1,31 +1,68 @@
-function PaperCard({ paper, onSelect }) {
+export default function PaperCard({ paper, onSelect }) {
+  const isInfluential = Number(paper.citation_count || 0) >= 500;
+
   return (
-    <div className="paper-card" onClick={() => onSelect(paper)}>
-      <h3>{paper.title}</h3>
+    <article className="paper-card" onClick={() => onSelect(paper)}>
+      <div className="paper-card-top">
+        <h3>{paper.title || "Untitled paper"}</h3>
 
-      <p>
-        <strong>Año:</strong> {paper.year || "No disponible"}
+        {isInfluential && (
+          <span className="influential-badge">Highly Influential</span>
+        )}
+      </div>
+
+      <p className="paper-meta">
+        {(paper.authors || []).slice(0, 3).join(", ") || "Unknown authors"} ·{" "}
+        {paper.year || "No year"}
       </p>
 
-      <p>
-        <strong>Citas:</strong> {paper.citation_count}
+      <p className="paper-abstract">
+        {paper.abstract
+          ? paper.abstract.slice(0, 260) + "..."
+          : "No abstract available."}
       </p>
 
-      <p>
-        <strong>Autores:</strong>{" "}
-        {paper.authors?.length > 0
-          ? paper.authors.join(", ")
-          : "No disponible"}
-      </p>
-
-      <p>
-        <strong>Topics:</strong>{" "}
-        {paper.topics?.length > 0
-          ? paper.topics.slice(0, 3).join(", ")
-          : "No disponible"}
-      </p>
-    </div>
+      <div className="paper-footer">
+        <span>{paper.citation_count || 0} citations</span>
+        <span>•</span>
+        <span>
+          {paper.topics?.length > 0
+            ? paper.topics.slice(0, 2).join(", ")
+            : "No topics"}
+        </span>
+      </div>
+    </article>
   );
 }
 
-export default PaperCard;
+// function PaperCard({ paper, onSelect }) {
+//   return (
+//     <div className="paper-card" onClick={() => onSelect(paper)}>
+//       <h3>{paper.title}</h3>
+
+//       <p>
+//         <strong>Año:</strong> {paper.year || "No disponible"}
+//       </p>
+
+//       <p>
+//         <strong>Citas:</strong> {paper.citation_count}
+//       </p>
+
+//       <p>
+//         <strong>Autores:</strong>{" "}
+//         {paper.authors?.length > 0
+//           ? paper.authors.join(", ")
+//           : "No disponible"}
+//       </p>
+
+//       <p>
+//         <strong>Topics:</strong>{" "}
+//         {paper.topics?.length > 0
+//           ? paper.topics.slice(0, 3).join(", ")
+//           : "No disponible"}
+//       </p>
+//     </div>
+//   );
+// }
+
+// export default PaperCard;

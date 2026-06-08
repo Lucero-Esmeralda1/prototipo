@@ -104,37 +104,90 @@ def get_paper_by_id(openalex_id):
     paper = Works()[openalex_id]
     return format_paper(paper)
 
-
-def get_citing_papers(openalex_id, max_citing_papers=20):
+def get_citing_papers(openalex_id, max_citing_papers=None):
     try:
         short_id = openalex_id.split("/")[-1]
 
-        url = (
-            f"https://api.openalex.org/works"
-            f"?filter=cites:{short_id}"
-            f"&per-page={max_citing_papers}"
-        )
-
-        response = requests.get(url)
-
-        if response.status_code != 200:
-            return []
-
-        data = response.json()
-
         citing_papers = []
+        cursor = "*"
+        per_page = 200
 
-        for result in data.get("results", []):
-            citing_papers.append({
-                "id": result.get("id", ""),
-                "title": result.get("title", ""),
-                "doi": result.get("doi", ""),
-                "year": result.get("publication_year", ""),
-                "citation_count": result.get("cited_by_count", 0)
-            })
+        while True:
+            params = {
+                "filter": f"cites:{short_id}",
+                "per-page": per_page,
+                "cursor": cursor
+            }
+
+            response = requests.get(
+                "https://api.openalex.org/works",
+                params=params,
+                timeout=30
+            )
+
+            if response.status_code != 200:
+                break
+
+            data = response.json()
+            results = data.get("results", [])
+
+            if not results:
+                break
+
+            for result in results:
+                citing_papers.append({
+                    "id": result.get("id", ""),
+                    "title": result.get("title", ""),
+                    "doi": result.get("doi", ""),
+                    "year": result.get("publication_year", ""),
+                    "citation_count": result.get("cited_by_count", 0)
+                })
+
+                if max_citing_papers is not None and len(citing_papers) >= max_citing_papers:
+                    return citing_papers
+
+            next_cursor = data.get("meta", {}).get("next_cursor")
+
+            if not next_cursor or next_cursor == cursor:
+                break
+
+            cursor = next_cursor
 
         return citing_papers
 
     except Exception as e:
         print("Error obteniendo papers citantes:", e)
         return []
+# def get_citing_papers(openalex_id, max_citing_papers=20):
+#     try:
+#         short_id = openalex_id.split("/")[-1]
+
+#         url = (
+#             f"https://api.openalex.org/works"
+#             f"?filter=cites:{short_id}"
+#             f"&per-page={max_citing_papers}"
+#         )
+
+#         response = requests.get(url)
+
+#         if response.status_code != 200:
+#             return []
+
+#         data = response.json()
+
+#         citing_papers = []
+
+#         for result in data.get("results", []):
+#             citing_papers.append({
+#                 "id": result.get("id", ""),
+#                 "title": result.get("title", ""),
+#                 "doi": result.get("doi", ""),
+#                 "year": result.get("publication_year", ""),
+#                 "citation_count": result.get("cited_by_count", 0)
+#             })
+
+#         return citing_papers
+
+    # except Exception as e:
+    #     print("Error obteniendo papers citantes:", e)
+    #     return []
