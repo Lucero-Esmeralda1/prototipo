@@ -4,10 +4,18 @@ import {
   BarChart3,
   Settings,
   Sun,
+  Moon,
   User,
 } from "lucide-react";
 
-export default function Sidebar({ activeView, setActiveView }) {
+export default function Sidebar({
+  activeView,
+  setActiveView,
+  theme,
+  toggleTheme,
+  openSettings,
+  openAuth,
+}) {
   return (
     <aside className="sidebar">
       <div className="logo-box">
@@ -41,15 +49,19 @@ export default function Sidebar({ activeView, setActiveView }) {
       </nav>
 
       <div className="bottom-icons">
-        <button className="nav-btn">
-          <Sun size={22} />
+        <button className="nav-btn" onClick={toggleTheme} title="Cambiar tema">
+          {theme === "dark" ? <Sun size={22} /> : <Moon size={22} />}
         </button>
 
-        <button className="nav-btn">
+        <button
+          className="nav-btn"
+          onClick={openSettings}
+          title="Configuración"
+        >
           <Settings size={22} />
         </button>
 
-        <button className="nav-btn user-btn">
+        <button className="nav-btn user-btn" onClick={openAuth} title="Cuenta">
           <User size={22} />
         </button>
       </div>
