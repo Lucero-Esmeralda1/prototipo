@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 
 import {
@@ -6,12 +6,15 @@ import {
   Mail,
   Lock,
   Eye,
+  EyeOff,
   User,
   Palette,
   Bell,
   Globe,
   Shield,
   Database,
+  LogOut,
+  Trash2,
 } from "lucide-react";
 
 import Sidebar from "./components/Sidebar";
@@ -29,7 +32,16 @@ export default function App() {
   const [theme, setTheme] = useState("dark");
   const [showSettings, setShowSettings] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
   const [authMode, setAuthMode] = useState("login");
+  const [currentUser, setCurrentUser] = useState(null);
+
+  const [settings, setSettings] = useState({
+    newPublications: true,
+    citationUpdates: false,
+    language: "es",
+    publicProfile: true,
+  });
 
   const [activeView, setActiveView] = useState("search");
   const [query, setQuery] = useState("");
@@ -47,24 +59,251 @@ export default function App() {
     "Computer Vision",
   ];
 
+  useEffect(() => {
+    const savedUser = localStorage.getItem("researchgraph_current_user");
+    const savedTheme = localStorage.getItem("researchgraph_theme");
+    const savedSettings = localStorage.getItem("researchgraph_settings");
+
+    if (savedUser) {
+      setCurrentUser(JSON.parse(savedUser));
+    }
+
+    if (savedTheme) {
+      setTheme(savedTheme);
+    }
+
+    if (savedSettings) {
+      setSettings(JSON.parse(savedSettings));
+    }
+  }, []);
+
   const toggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+    setTheme((prev) => {
+      const nextTheme = prev === "dark" ? "light" : "dark";
+      localStorage.setItem("researchgraph_theme", nextTheme);
+      return nextTheme;
+    });
+  };
+
+  const updateSetting = (key, value) => {
+    setSettings((prev) => {
+      const updatedSettings = {
+        ...prev,
+        [key]: value,
+      };
+
+      localStorage.setItem(
+        "researchgraph_settings",
+        JSON.stringify(updatedSettings)
+      );
+
+      return updatedSettings;
+    });
+  };
+
+  const handleExportData = () => {
+    const exportData = {
+      currentUser,
+      settings,
+      savedUsers: JSON.parse(localStorage.getItem("researchgraph_users") || "[]"),
+      currentSearch: {
+        query,
+        papers,
+      },
+      currentGraph: graphData,
+      exportedAt: new Date().toISOString(),
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json",
+    });
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "researchgraph-data.json";
+    link.click();
+
+    URL.revokeObjectURL(url);
   };
 
   const openSettings = () => {
     setShowAuth(false);
+    setShowAccount(false);
     setShowSettings(true);
   };
 
   const openAuth = () => {
     setShowSettings(false);
-    setAuthMode("login");
-    setShowAuth(true);
+
+    if (currentUser) {
+      setShowAuth(false);
+      setShowAccount(true);
+    } else {
+      setShowAccount(false);
+      setAuthMode("login");
+      setShowAuth(true);
+    }
   };
 
   const closeModals = () => {
     setShowSettings(false);
     setShowAuth(false);
+    setShowAccount(false);
+  };
+
+  const getStoredUsers = () => {
+    const users = localStorage.getItem("researchgraph_users");
+    return users ? JSON.parse(users) : [];
+  };
+
+  const saveStoredUsers = (users) => {
+    localStorage.setItem("researchgraph_users", JSON.stringify(users));
+  };
+
+  const handleRegister = ({ fullName, email, password }) => {
+    const cleanName = fullName.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanName || !cleanEmail || !password) {
+      return {
+        ok: false,
+        message: "Completa todos los campos.",
+      };
+    }
+
+    if (!cleanEmail.includes("@")) {
+      return {
+        ok: false,
+        message: "Ingresa un correo válido.",
+      };
+    }
+
+    if (password.length < 6) {
+      return {
+        ok: false,
+        message: "La contraseña debe tener mínimo 6 caracteres.",
+      };
+    }
+
+    const users = getStoredUsers();
+
+    const exists = users.some((user) => user.email === cleanEmail);
+
+    if (exists) {
+      return {
+        ok: false,
+        message: "Ya existe una cuenta con este correo.",
+      };
+    }
+
+    const newUser = {
+      id: crypto.randomUUID(),
+      fullName: cleanName,
+      email: cleanEmail,
+      password,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedUsers = [...users, newUser];
+    saveStoredUsers(updatedUsers);
+
+    const sessionUser = {
+      id: newUser.id,
+      fullName: newUser.fullName,
+      email: newUser.email,
+      createdAt: newUser.createdAt,
+    };
+
+    localStorage.setItem(
+      "researchgraph_current_user",
+      JSON.stringify(sessionUser)
+    );
+
+    setCurrentUser(sessionUser);
+    setShowAuth(false);
+    setShowAccount(true);
+
+    return {
+      ok: true,
+      message: "Cuenta creada correctamente.",
+    };
+  };
+
+  const handleLogin = ({ email, password }) => {
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanEmail || !password) {
+      return {
+        ok: false,
+        message: "Ingresa tu correo y contraseña.",
+      };
+    }
+
+    const users = getStoredUsers();
+
+    const user = users.find(
+      (item) => item.email === cleanEmail && item.password === password
+    );
+
+    if (!user) {
+      return {
+        ok: false,
+        message: "Correo o contraseña incorrectos.",
+      };
+    }
+
+    const sessionUser = {
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      createdAt: user.createdAt,
+    };
+
+    localStorage.setItem(
+      "researchgraph_current_user",
+      JSON.stringify(sessionUser)
+    );
+
+    setCurrentUser(sessionUser);
+    setShowAuth(false);
+    setShowAccount(true);
+
+    return {
+      ok: true,
+      message: "Sesión iniciada correctamente.",
+    };
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("researchgraph_current_user");
+    setCurrentUser(null);
+    setShowAccount(false);
+    setShowAuth(true);
+    setAuthMode("login");
+  };
+
+  const handleDeleteAccount = () => {
+    if (!currentUser) return;
+
+    const confirmDelete = window.confirm(
+      "¿Seguro que deseas eliminar tu cuenta? Esta acción no se puede deshacer."
+    );
+
+    if (!confirmDelete) return;
+
+    const users = getStoredUsers();
+
+    const updatedUsers = users.filter((user) => user.id !== currentUser.id);
+
+    saveStoredUsers(updatedUsers);
+    localStorage.removeItem("researchgraph_current_user");
+
+    setCurrentUser(null);
+    setShowAccount(false);
+    setShowAuth(true);
+    setAuthMode("register");
   };
 
   const handleSearch = async (customQuery = query) => {
@@ -127,6 +366,7 @@ export default function App() {
         toggleTheme={toggleTheme}
         openSettings={openSettings}
         openAuth={openAuth}
+        currentUser={currentUser}
       />
 
       <div className="app-main">
@@ -135,6 +375,12 @@ export default function App() {
             <h1>ResearchGraph</h1>
             <p>Citation Network Explorer</p>
           </div>
+
+          {currentUser && (
+            <div className="topbar-user">
+              <span>{currentUser.fullName}</span>
+            </div>
+          )}
         </header>
 
         {activeView === "search" && (
@@ -246,7 +492,12 @@ export default function App() {
         <SettingsModal
           theme={theme}
           toggleTheme={toggleTheme}
+          settings={settings}
+          updateSetting={updateSetting}
+          currentUser={currentUser}
           onClose={closeModals}
+          onExportData={handleExportData}
+          onDeleteAccount={handleDeleteAccount}
         />
       )}
 
@@ -255,13 +506,33 @@ export default function App() {
           authMode={authMode}
           setAuthMode={setAuthMode}
           onClose={closeModals}
+          onLogin={handleLogin}
+          onRegister={handleRegister}
+        />
+      )}
+
+      {showAccount && currentUser && (
+        <AccountModal
+          currentUser={currentUser}
+          onClose={closeModals}
+          onLogout={handleLogout}
+          onDeleteAccount={handleDeleteAccount}
         />
       )}
     </div>
   );
 }
 
-function SettingsModal({ theme, toggleTheme, onClose }) {
+function SettingsModal({
+  theme,
+  toggleTheme,
+  settings,
+  updateSetting,
+  currentUser,
+  onClose,
+  onExportData,
+  onDeleteAccount,
+}) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="settings-popup" onClick={(e) => e.stopPropagation()}>
@@ -285,7 +556,11 @@ function SettingsModal({ theme, toggleTheme, onClose }) {
             <div className="setting-card">
               <div>
                 <strong>Tema</strong>
-                <p>Cambiar entre modo claro y oscuro</p>
+                <p>
+                  {theme === "dark"
+                    ? "Modo oscuro activado"
+                    : "Modo claro activado"}
+                </p>
               </div>
 
               <label className="modern-switch">
@@ -314,7 +589,13 @@ function SettingsModal({ theme, toggleTheme, onClose }) {
               </div>
 
               <label className="modern-switch">
-                <input type="checkbox" defaultChecked />
+                <input
+                  type="checkbox"
+                  checked={settings.newPublications}
+                  onChange={(e) =>
+                    updateSetting("newPublications", e.target.checked)
+                  }
+                />
                 <span></span>
               </label>
             </div>
@@ -326,7 +607,13 @@ function SettingsModal({ theme, toggleTheme, onClose }) {
               </div>
 
               <label className="modern-switch">
-                <input type="checkbox" />
+                <input
+                  type="checkbox"
+                  checked={settings.citationUpdates}
+                  onChange={(e) =>
+                    updateSetting("citationUpdates", e.target.checked)
+                  }
+                />
                 <span></span>
               </label>
             </div>
@@ -340,7 +627,11 @@ function SettingsModal({ theme, toggleTheme, onClose }) {
               <h3>Idioma</h3>
             </div>
 
-            <select className="popup-select" defaultValue="es">
+            <select
+              className="popup-select"
+              value={settings.language}
+              onChange={(e) => updateSetting("language", e.target.value)}
+            >
               <option value="es">Español</option>
               <option value="en">Inglés</option>
               <option value="pt">Portugués</option>
@@ -362,7 +653,13 @@ function SettingsModal({ theme, toggleTheme, onClose }) {
               </div>
 
               <label className="modern-switch">
-                <input type="checkbox" defaultChecked />
+                <input
+                  type="checkbox"
+                  checked={settings.publicProfile}
+                  onChange={(e) =>
+                    updateSetting("publicProfile", e.target.checked)
+                  }
+                />
                 <span></span>
               </label>
             </div>
@@ -376,15 +673,22 @@ function SettingsModal({ theme, toggleTheme, onClose }) {
               <h3>Datos</h3>
             </div>
 
-            <button className="data-action">
+            <button className="data-action" onClick={onExportData}>
               <strong>Exportar datos</strong>
-              <span>Descargar toda tu información</span>
+              <span>Descargar toda tu información en formato JSON</span>
             </button>
 
-            <button className="danger-action">
-              <strong>Eliminar cuenta</strong>
-              <span>Eliminar permanentemente tu cuenta y datos</span>
-            </button>
+            {currentUser ? (
+              <button className="danger-action" onClick={onDeleteAccount}>
+                <strong>Eliminar cuenta</strong>
+                <span>Eliminar permanentemente tu cuenta y datos</span>
+              </button>
+            ) : (
+              <button className="data-action disabled-action" disabled>
+                <strong>Cuenta no iniciada</strong>
+                <span>Inicia sesión para administrar tus datos</span>
+              </button>
+            )}
           </section>
         </div>
 
@@ -398,8 +702,36 @@ function SettingsModal({ theme, toggleTheme, onClose }) {
   );
 }
 
-function AuthModal({ authMode, setAuthMode, onClose }) {
+function AuthModal({ authMode, setAuthMode, onClose, onLogin, onRegister }) {
   const isLogin = authMode === "login";
+
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [authMessage, setAuthMessage] = useState("");
+
+  const submitAuth = () => {
+    setAuthMessage("");
+
+    const result = isLogin
+      ? onLogin({ email, password })
+      : onRegister({ fullName, email, password });
+
+    if (!result.ok) {
+      setAuthMessage(result.message);
+    }
+  };
+
+  const changeMode = (mode) => {
+    setAuthMode(mode);
+    setAuthMessage("");
+    setFullName("");
+    setEmail("");
+    setPassword("");
+    setShowPassword(false);
+  };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -418,7 +750,12 @@ function AuthModal({ authMode, setAuthMode, onClose }) {
               Nombre completo
               <div className="input-icon-box">
                 <User size={17} />
-                <input type="text" placeholder="Juan Pérez" />
+                <input
+                  type="text"
+                  placeholder="Juan Pérez"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                />
               </div>
             </label>
           )}
@@ -427,7 +764,12 @@ function AuthModal({ authMode, setAuthMode, onClose }) {
             Correo electrónico
             <div className="input-icon-box">
               <Mail size={17} />
-              <input type="email" placeholder="correo@ejemplo.com" />
+              <input
+                type="email"
+                placeholder="correo@ejemplo.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
           </label>
 
@@ -435,14 +777,28 @@ function AuthModal({ authMode, setAuthMode, onClose }) {
             Contraseña
             <div className="input-icon-box">
               <Lock size={17} />
-              <input type="password" placeholder="••••••••" />
-              <Eye size={17} />
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+
+              <button
+                type="button"
+                className="password-eye-btn"
+                onClick={() => setShowPassword((prev) => !prev)}
+              >
+                {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+              </button>
             </div>
           </label>
 
           {!isLogin && <p className="password-help">Mínimo 6 caracteres</p>}
 
-          <button type="button" className="auth-primary-btn">
+          {authMessage && <p className="auth-error">{authMessage}</p>}
+
+          <button type="button" className="auth-primary-btn" onClick={submitAuth}>
             {isLogin ? "Iniciar Sesión" : "Crear Cuenta"}
           </button>
         </form>
@@ -455,14 +811,14 @@ function AuthModal({ authMode, setAuthMode, onClose }) {
           {isLogin ? (
             <p>
               ¿No tienes cuenta?{" "}
-              <button onClick={() => setAuthMode("register")}>
+              <button onClick={() => changeMode("register")}>
                 Regístrate aquí
               </button>
             </p>
           ) : (
             <p>
               ¿Ya tienes cuenta?{" "}
-              <button onClick={() => setAuthMode("login")}>
+              <button onClick={() => changeMode("login")}>
                 Inicia sesión
               </button>
             </p>
@@ -477,3 +833,48 @@ function AuthModal({ authMode, setAuthMode, onClose }) {
     </div>
   );
 }
+
+function AccountModal({ currentUser, onClose, onLogout, onDeleteAccount }) {
+  const createdDate = currentUser?.createdAt
+    ? new Date(currentUser.createdAt).toLocaleDateString()
+    : "No disponible";
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="account-popup" onClick={(e) => e.stopPropagation()}>
+        <div className="popup-header">
+          <h2>Mi Cuenta</h2>
+
+          <button className="popup-close" onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="account-body">
+          <div className="account-avatar">
+            {currentUser.fullName?.charAt(0)?.toUpperCase() || "U"}
+          </div>
+
+          <h3>{currentUser.fullName}</h3>
+          <p>{currentUser.email}</p>
+
+          <div className="account-info-card">
+            <span>Fecha de registro</span>
+            <strong>{createdDate}</strong>
+          </div>
+
+          <button className="account-action-btn" onClick={onLogout}>
+            <LogOut size={17} />
+            Cerrar sesión
+          </button>
+
+          <button className="account-danger-btn" onClick={onDeleteAccount}>
+            <Trash2 size={17} />
+            Eliminar cuenta
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+

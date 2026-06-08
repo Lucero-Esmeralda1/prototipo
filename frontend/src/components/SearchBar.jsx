@@ -9,12 +9,13 @@ export default function SearchBar({ query, setQuery, onSearch, loading }) {
 
   return (
     <div className="search-row">
-      <button className="filter-btn">
+      <button className="filter-btn" type="button">
         <Filter size={24} />
       </button>
 
       <div className="search-input-box">
         <Search size={22} />
+
         <input
           type="text"
           placeholder="Search by title, DOI, author, keywords, or year..."

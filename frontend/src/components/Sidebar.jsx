@@ -1,3 +1,4 @@
+
 import {
   Search,
   Network,
@@ -15,6 +16,7 @@ export default function Sidebar({
   toggleTheme,
   openSettings,
   openAuth,
+  currentUser,
 }) {
   return (
     <aside className="sidebar">
@@ -61,10 +63,21 @@ export default function Sidebar({
           <Settings size={22} />
         </button>
 
-        <button className="nav-btn user-btn" onClick={openAuth} title="Cuenta">
-          <User size={22} />
+        <button
+          className={currentUser ? "nav-btn user-btn logged" : "nav-btn user-btn"}
+          onClick={openAuth}
+          title={currentUser ? "Mi cuenta" : "Iniciar sesión"}
+        >
+          {currentUser ? (
+            <span className="sidebar-initial">
+              {currentUser.fullName?.charAt(0)?.toUpperCase() || "U"}
+            </span>
+          ) : (
+            <User size={22} />
+          )}
         </button>
       </div>
     </aside>
   );
 }
+
