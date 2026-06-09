@@ -6,6 +6,7 @@ import {
   Sun,
   Moon,
   User,
+  FileText,
 } from "lucide-react";
 
 export default function Sidebar({
@@ -38,6 +39,16 @@ export default function Sidebar({
           title="Graph"
         >
           <Network size={24} />
+        </button>
+
+        <button
+          className={
+            activeView === "networkPapers" ? "nav-btn active" : "nav-btn"
+          }
+          onClick={() => setActiveView("networkPapers")}
+          title="References & Citing Papers"
+        >
+          <FileText size={24} />
         </button>
 
         <button

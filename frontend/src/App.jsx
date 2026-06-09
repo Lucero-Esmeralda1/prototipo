@@ -414,7 +414,7 @@ export default function App() {
       setSelectedPaper(null);
       setSelectedNode(null);
       setShowFilters(false);
-      setActiveView(targetView === "analytics" ? "analytics" : "graph");
+      setActiveView(["analytics", "networkPapers"].includes(targetView) ? targetView : "graph");
 
       const response = await axios.get(`${API_URL}/api/graph`, {
         params: {
@@ -625,6 +625,17 @@ export default function App() {
           </main>
         )}
 
+        {activeView === "networkPapers" && (
+          <NetworkPapersView
+            graphData={graphData}
+            selectedPaper={selectedPaper}
+            loading={loading}
+            routeError={routeError}
+            onOpenPaper={openPaperInNewTab}
+            onGoSearch={() => changeView("search")}
+          />
+        )}
+
         {activeView === "analytics" && (
           <main className="analytics-page">
             {loading && !graphData ? (
@@ -683,6 +694,159 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+
+function NetworkPapersView({
+  graphData,
+  selectedPaper,
+  loading,
+  routeError,
+  onOpenPaper,
+  onGoSearch,
+}) {
+  const mainPaper = graphData?.main_paper || selectedPaper || null;
+  const nodes = graphData?.nodes || [];
+  const references = nodes.filter((paper) => paper.type === "reference");
+  const citingPapers = nodes.filter((paper) => paper.type === "citing_paper");
+
+  const renderPaperList = (items, type) => {
+    if (!items.length) {
+      return (
+        <div className="network-empty-list">
+          No hay papers disponibles para esta sección.
+        </div>
+      );
+    }
+
+    return (
+      <div className="network-paper-list">
+        {items.map((paper, index) => {
+          const paperId = paper.paper_id || paper.id;
+          const title = paper.title || paper.label || "Sin título";
+
+          return (
+            <article className="network-paper-item" key={paperId || index}>
+              <div className={`network-paper-number ${type}`}>
+                {index + 1}
+              </div>
+
+              <div className="network-paper-info">
+                <h4>{title}</h4>
+
+                <p>
+                  {paper.year || "Sin año"} ·{" "}
+                  {Number(paper.citation_count || 0).toLocaleString()} citas
+                </p>
+
+                {paperId && <span>{paperId}</span>}
+              </div>
+
+              <button
+                type="button"
+                className="network-paper-open-btn"
+                onClick={() => onOpenPaper?.(paperId)}
+                disabled={!paperId}
+                title="Abrir grafo de este paper en una nueva pestaña"
+              >
+                Abrir grafo
+              </button>
+            </article>
+          );
+        })}
+      </div>
+    );
+  };
+
+  if (loading && !graphData) {
+    return (
+      <main className="network-papers-page">
+        <div className="empty-graph">
+          <div className="empty-icon">⏳</div>
+          <h2>Cargando lista de papers...</h2>
+          <p>Estamos obteniendo referencias y papers citantes.</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (routeError) {
+    return (
+      <main className="network-papers-page">
+        <div className="empty-graph">
+          <div className="empty-icon">!</div>
+          <h2>No se pudo cargar la lista</h2>
+          <p>{routeError}</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!graphData) {
+    return (
+      <main className="network-papers-page">
+        <div className="network-empty-state">
+          <div className="empty-icon">☰</div>
+          <h2>No hay paper seleccionado</h2>
+          <p>
+            Primero busca un paper y construye su grafo. Luego aquí verás sus
+            referencias y los papers que lo citaron.
+          </p>
+
+          <button type="button" onClick={onGoSearch}>
+            Ir a búsqueda
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="network-papers-page">
+      <section className="network-papers-header">
+        <div>
+          <h2>References & Citing Papers</h2>
+          <p>
+            Lista de papers relacionados con el paper seleccionado en el grafo.
+          </p>
+        </div>
+
+        <div className="network-papers-stats">
+          <span>{references.length} referencias</span>
+          <span>{citingPapers.length} papers citantes</span>
+        </div>
+      </section>
+
+      <section className="network-main-paper-card">
+        <span>Paper seleccionado</span>
+        <h3>{mainPaper?.title || mainPaper?.label || "Sin título"}</h3>
+        <p>
+          {mainPaper?.year || "Sin año"} ·{" "}
+          {Number(mainPaper?.citation_count || 0).toLocaleString()} citas
+        </p>
+      </section>
+
+      <section className="network-paper-columns">
+        <div className="network-paper-column">
+          <div className="network-column-title">
+            <h3>Referencias</h3>
+            <span>Papers que el paper seleccionado usó como base.</span>
+          </div>
+
+          {renderPaperList(references, "reference")}
+        </div>
+
+        <div className="network-paper-column">
+          <div className="network-column-title">
+            <h3>Papers que lo citaron</h3>
+            <span>Papers posteriores que citaron al paper seleccionado.</span>
+          </div>
+
+          {renderPaperList(citingPapers, "citing")}
+        </div>
+      </section>
+    </main>
   );
 }
 
