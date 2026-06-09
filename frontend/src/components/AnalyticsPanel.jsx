@@ -8,7 +8,12 @@ import {
   CartesianGrid,
 } from "recharts";
 
-export default function AnalyticsPanel({ papers, graphData, selectedPaper }) {
+export default function AnalyticsPanel({
+  papers,
+  graphData,
+  selectedPaper,
+  onOpenPaper,
+}) {
   const graphNodes = graphData?.nodes || [];
 
   const mainPaper = graphData?.main_paper || selectedPaper || null;
@@ -65,8 +70,24 @@ export default function AnalyticsPanel({ papers, graphData, selectedPaper }) {
     .sort((a, b) => Number(a.year) - Number(b.year));
 
   const topPapers = [...sourcePapers]
+    .filter((paper) => paper?.id || paper?.paper_id)
     .sort((a, b) => Number(b.citation_count || 0) - Number(a.citation_count || 0))
     .slice(0, 8);
+
+  const getPaperId = (paper) => paper?.paper_id || paper?.id;
+
+  const hasAnalyticsData = sourcePapers.length > 0 || Boolean(mainPaper);
+
+  if (!hasAnalyticsData) {
+    return (
+      <div className="analytics-content">
+        <div className="analytics-header">
+          <h2>Timeline & Analytics</h2>
+          <p>Selecciona un paper o abre un paper influyente para calcular sus analíticas.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="analytics-content">
@@ -168,23 +189,36 @@ export default function AnalyticsPanel({ papers, graphData, selectedPaper }) {
 
       <div className="chart-card">
         <h3>Most Influential Papers in Network</h3>
+        <p className="chart-description">
+          Haz clic en un paper para abrir su grafo y sus analíticas en una nueva pestaña.
+        </p>
 
         <div className="ranking-list">
-          {topPapers.map((paper, index) => (
-            <div className="ranking-item" key={paper.id || paper.paper_id}>
-              <span className="rank-number">{index + 1}</span>
+          {topPapers.map((paper, index) => {
+            const paperId = getPaperId(paper);
 
-              <div>
-                <strong>{paper.label || paper.title}</strong>
-                <p>
-                  {paper.year || "N/A"} · {paper.citation_count || 0} citations
-                </p>
-              </div>
-            </div>
-          ))}
+            return (
+              <button
+                className="ranking-item ranking-clickable"
+                key={paperId || index}
+                type="button"
+                onClick={() => paperId && onOpenPaper?.(paperId)}
+                disabled={!paperId}
+                title={paperId ? "Abrir este paper en una nueva pestaña" : "Este paper no tiene ID disponible"}
+              >
+                <span className="rank-number">{index + 1}</span>
+
+                <div>
+                  <strong>{paper.label || paper.title || "Sin título"}</strong>
+                  <p>
+                    {paper.year || "N/A"} · {Number(paper.citation_count || 0).toLocaleString()} citations
+                  </p>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
   );
 }
-

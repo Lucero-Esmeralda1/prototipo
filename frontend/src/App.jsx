@@ -53,6 +53,7 @@ export default function App() {
   const [selectedPaper, setSelectedPaper] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [routeError, setRouteError] = useState("");
 
   const [showFilters, setShowFilters] = useState(false);
 
@@ -403,30 +404,73 @@ export default function App() {
     }
   };
 
-  const handleSelectPaper = async (paper) => {
+  const loadGraphByPaperId = async (paperId, targetView = "graph") => {
+    if (!paperId) return;
+
     try {
       setLoading(true);
-      setSelectedPaper(paper);
+      setRouteError("");
+      setGraphData(null);
+      setSelectedPaper(null);
       setSelectedNode(null);
       setShowFilters(false);
-      setActiveView("graph");
+      setActiveView(targetView === "analytics" ? "analytics" : "graph");
 
       const response = await axios.get(`${API_URL}/api/graph`, {
         params: {
-          paper_id: paper.paper_id,
+          paper_id: paperId,
           max_references: 10,
           max_citing: 10,
         },
       });
 
-      setGraphData(response.data);
+      const newGraphData = response.data;
+      const networkNodes = newGraphData?.nodes || [];
+
+      setGraphData(newGraphData);
+      setSelectedPaper(newGraphData?.main_paper || null);
+      setPapers(networkNodes);
+      setAllPapers(networkNodes);
     } catch (error) {
-      console.error("Error construyendo grafo:", error);
-      alert("Error al construir el grafo.");
+      console.error("Error cargando grafo:", error);
+      setRouteError(
+        "No se pudo cargar el grafo del paper seleccionado. Verifica que el backend esté activo y que el ID exista en OpenAlex."
+      );
     } finally {
       setLoading(false);
     }
   };
+
+  const handleSelectPaper = async (paper) => {
+    const paperId = paper?.paper_id || paper?.id;
+    setSelectedPaper(paper);
+    await loadGraphByPaperId(paperId, "graph");
+  };
+
+  const openPaperInNewTab = (paperId) => {
+    if (!paperId) return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("paper_id", paperId);
+    url.searchParams.set("view", "graph");
+
+    localStorage.setItem("researchgraph_pending_paper_id", paperId);
+
+    window.open(url.toString(), "_blank", "noopener,noreferrer");
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlPaperId = params.get("paper_id");
+    const storedPaperId = localStorage.getItem("researchgraph_pending_paper_id");
+    const paperId = urlPaperId || storedPaperId;
+    const view = params.get("view") || "graph";
+
+    if (paperId) {
+      localStorage.removeItem("researchgraph_pending_paper_id");
+      loadGraphByPaperId(paperId, view);
+    }
+  }, []);
 
   const changeView = (view) => {
     setShowFilters(false);
@@ -528,7 +572,19 @@ export default function App() {
 
         {activeView === "graph" && (
           <main className="graph-page">
-            {!graphData ? (
+            {loading && !graphData ? (
+              <div className="empty-graph">
+                <div className="empty-icon">⏳</div>
+                <h2>Construyendo grafo...</h2>
+                <p>Estamos obteniendo referencias y papers citantes desde OpenAlex.</p>
+              </div>
+            ) : routeError ? (
+              <div className="empty-graph">
+                <div className="empty-icon">!</div>
+                <h2>No se pudo cargar el paper</h2>
+                <p>{routeError}</p>
+              </div>
+            ) : !graphData ? (
               <div className="empty-graph">
                 <div className="empty-icon">↯</div>
                 <h2>No Paper Selected</h2>
@@ -571,11 +627,26 @@ export default function App() {
 
         {activeView === "analytics" && (
           <main className="analytics-page">
-            <AnalyticsPanel
-              papers={papers}
-              graphData={graphData}
-              selectedPaper={selectedPaper}
-            />
+            {loading && !graphData ? (
+              <div className="empty-graph">
+                <div className="empty-icon">⏳</div>
+                <h2>Cargando analíticas...</h2>
+                <p>Estamos calculando los indicadores del paper seleccionado.</p>
+              </div>
+            ) : routeError ? (
+              <div className="empty-graph">
+                <div className="empty-icon">!</div>
+                <h2>No se pudieron cargar las analíticas</h2>
+                <p>{routeError}</p>
+              </div>
+            ) : (
+              <AnalyticsPanel
+                papers={papers}
+                graphData={graphData}
+                selectedPaper={selectedPaper}
+                onOpenPaper={openPaperInNewTab}
+              />
+            )}
           </main>
         )}
       </div>

@@ -1724,3 +1724,62 @@ button {
     min-width: 260px;
   }
 }
+
+/* =========================
+   CLICKABLE ANALYTICS PAPERS
+========================= */
+
+.ranking-clickable {
+  width: 100%;
+  border: 1px solid transparent;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  transition: 0.2s ease;
+}
+
+.ranking-clickable:hover {
+  transform: translateY(-2px);
+  border-color: #3b82f6;
+  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.22);
+}
+
+.ranking-clickable strong {
+  color: var(--text-main);
+}
+
+.ranking-clickable p {
+  color: var(--text-soft);
+}
+
+.app-shell.light-theme .ranking-clickable strong {
+  color: #0f172a;
+}
+
+.app-shell.light-theme .ranking-clickable p {
+  color: #2563eb;
+}
+
+/* =========================
+   CLICKABLE ANALYTICS PAPERS - FIX
+========================= */
+
+.ranking-clickable:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.empty-graph h2 {
+  color: var(--text-main);
+}
+
+.app-shell.light-theme .empty-graph h2 {
+  color: #0f172a;
+}
+
+.app-shell.light-theme .empty-graph p {
+  color: #2563eb;
+}
