@@ -23,6 +23,7 @@ import PaperCard from "./components/PaperCard";
 import CitationGraph from "./components/CitationGraph";
 import PaperDetailsPanel from "./components/PaperDetailsPanel";
 import AnalyticsPanel from "./components/AnalyticsPanel";
+import FilterPanel from "./components/FilterPanel";
 
 import "./App.css";
 
@@ -46,10 +47,22 @@ export default function App() {
   const [activeView, setActiveView] = useState("search");
   const [query, setQuery] = useState("");
   const [papers, setPapers] = useState([]);
+  const [allPapers, setAllPapers] = useState([]);
+
   const [graphData, setGraphData] = useState(null);
   const [selectedPaper, setSelectedPaper] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const [showFilters, setShowFilters] = useState(false);
+
+  const [filters, setFilters] = useState({
+    yearFrom: "2014",
+    yearTo: String(new Date().getFullYear()),
+    author: "",
+    area: "all",
+    minCitations: "0",
+  });
 
   const trendingTopics = [
     "Knowledge Graph",
@@ -131,11 +144,13 @@ export default function App() {
   const openSettings = () => {
     setShowAuth(false);
     setShowAccount(false);
+    setShowFilters(false);
     setShowSettings(true);
   };
 
   const openAuth = () => {
     setShowSettings(false);
+    setShowFilters(false);
 
     if (currentUser) {
       setShowAuth(false);
@@ -294,7 +309,6 @@ export default function App() {
     if (!confirmDelete) return;
 
     const users = getStoredUsers();
-
     const updatedUsers = users.filter((user) => user.id !== currentUser.id);
 
     saveStoredUsers(updatedUsers);
@@ -304,6 +318,59 @@ export default function App() {
     setShowAccount(false);
     setShowAuth(true);
     setAuthMode("register");
+  };
+
+  const applyFiltersToPapers = (paperList, activeFilters) => {
+    return paperList.filter((paper) => {
+      const paperYear = Number(paper.year || 0);
+      const yearFrom = Number(activeFilters.yearFrom || 0);
+      const yearTo = Number(activeFilters.yearTo || 9999);
+      const minCitations = Number(activeFilters.minCitations || 0);
+
+      const authorsText = (paper.authors || []).join(" ").toLowerCase();
+      const topicsText = (paper.topics || []).join(" ").toLowerCase();
+      const citations = Number(paper.citation_count || 0);
+
+      const yearOk = paperYear >= yearFrom && paperYear <= yearTo;
+
+      const authorOk =
+        !activeFilters.author.trim() ||
+        authorsText.includes(activeFilters.author.trim().toLowerCase());
+
+      const areaOk =
+        activeFilters.area === "all" ||
+        topicsText.includes(activeFilters.area.toLowerCase());
+
+      const citationOk = citations >= minCitations;
+
+      return yearOk && authorOk && areaOk && citationOk;
+    });
+  };
+
+  const handleFilterChange = (key, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  const handleApplyFilters = () => {
+    const filtered = applyFiltersToPapers(allPapers, filters);
+    setPapers(filtered);
+    setShowFilters(false);
+  };
+
+  const handleResetFilters = () => {
+    const resetValues = {
+      yearFrom: "2014",
+      yearTo: String(new Date().getFullYear()),
+      author: "",
+      area: "all",
+      minCitations: "0",
+    };
+
+    setFilters(resetValues);
+    setPapers(allPapers);
   };
 
   const handleSearch = async (customQuery = query) => {
@@ -323,7 +390,10 @@ export default function App() {
         },
       });
 
-      setPapers(response.data.papers || []);
+      const fetchedPapers = response.data.papers || [];
+
+      setAllPapers(fetchedPapers);
+      setPapers(applyFiltersToPapers(fetchedPapers, filters));
       setActiveView("search");
     } catch (error) {
       console.error("Error buscando papers:", error);
@@ -338,6 +408,7 @@ export default function App() {
       setLoading(true);
       setSelectedPaper(paper);
       setSelectedNode(null);
+      setShowFilters(false);
       setActiveView("graph");
 
       const response = await axios.get(`${API_URL}/api/graph`, {
@@ -357,11 +428,16 @@ export default function App() {
     }
   };
 
+  const changeView = (view) => {
+    setShowFilters(false);
+    setActiveView(view);
+  };
+
   return (
     <div className={`app-shell ${theme === "light" ? "light-theme" : ""}`}>
       <Sidebar
         activeView={activeView}
-        setActiveView={setActiveView}
+        setActiveView={changeView}
         theme={theme}
         toggleTheme={toggleTheme}
         openSettings={openSettings}
@@ -384,55 +460,71 @@ export default function App() {
         </header>
 
         {activeView === "search" && (
-          <main className="search-page">
-            <section className="hero-section">
-              <h2>Explore Scientific Research</h2>
-              <p>Discover papers and visualize citation networks</p>
+  <main className="search-page">
+    <div className="search-page-layout">
+      {showFilters && (
+        <FilterPanel
+          filters={filters}
+          onChange={handleFilterChange}
+          onApply={handleApplyFilters}
+          onReset={handleResetFilters}
+          onClose={() => setShowFilters(false)}
+        />
+      )}
 
-              <SearchBar
-                query={query}
-                setQuery={setQuery}
-                onSearch={() => handleSearch()}
-                loading={loading}
-              />
+      <div className="search-content-area">
+        <section className="hero-section">
+          <h2>Explore Scientific Research</h2>
+          <p>Discover papers and visualize citation networks</p>
 
-              <div className="trending-section">
-                <h3>Trending Topics</h3>
+          <SearchBar
+            query={query}
+            setQuery={setQuery}
+            onSearch={() => handleSearch()}
+            loading={loading}
+            // onToggleFilters={() => setShowFilters(true)}
+            onToggleFilters={() => setShowFilters((prev) => !prev)}
+          />
 
-                <div className="topic-list">
-                  {trendingTopics.map((topic) => (
-                    <button
-                      key={topic}
-                      className="topic-chip"
-                      onClick={() => handleSearch(topic)}
-                    >
-                      {topic}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </section>
+          <div className="trending-section">
+            <h3>Trending Topics</h3>
 
-            {papers.length > 0 && (
-              <section className="results-area">
-                <div className="section-title">
-                  <h3>{papers.length} results found</h3>
-                  <span>Click a paper to build its citation graph</span>
-                </div>
+            <div className="topic-list">
+              {trendingTopics.map((topic) => (
+                <button
+                  key={topic}
+                  className="topic-chip"
+                  onClick={() => handleSearch(topic)}
+                >
+                  {topic}
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
 
-                <div className="paper-list">
-                  {papers.map((paper) => (
-                    <PaperCard
-                      key={paper.paper_id}
-                      paper={paper}
-                      onSelect={handleSelectPaper}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
-          </main>
+        {papers.length > 0 && (
+          <section className="results-area">
+            <div className="section-title">
+              <h3>{papers.length} results found</h3>
+              <span>Click a paper to build its citation graph</span>
+            </div>
+
+            <div className="paper-list">
+              {papers.map((paper) => (
+                <PaperCard
+                  key={paper.paper_id}
+                  paper={paper}
+                  onSelect={handleSelectPaper}
+                />
+              ))}
+            </div>
+          </section>
         )}
+      </div>
+    </div>
+  </main>
+)}
 
         {activeView === "graph" && (
           <main className="graph-page">
@@ -877,4 +969,3 @@ function AccountModal({ currentUser, onClose, onLogout, onDeleteAccount }) {
     </div>
   );
 }
-

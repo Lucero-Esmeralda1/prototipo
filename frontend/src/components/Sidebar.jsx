@@ -1,4 +1,3 @@
-
 import {
   Search,
   Network,
@@ -64,7 +63,9 @@ export default function Sidebar({
         </button>
 
         <button
-          className={currentUser ? "nav-btn user-btn logged" : "nav-btn user-btn"}
+          className={
+            currentUser ? "nav-btn user-btn logged" : "nav-btn user-btn"
+          }
           onClick={openAuth}
           title={currentUser ? "Mi cuenta" : "Iniciar sesión"}
         >
@@ -80,4 +81,3 @@ export default function Sidebar({
     </aside>
   );
 }
-

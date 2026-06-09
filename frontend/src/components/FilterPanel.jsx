@@ -1,7 +1,6 @@
 import { X } from "lucide-react";
 
 export default function FilterPanel({
-  show,
   filters,
   onChange,
   onApply,
@@ -9,7 +8,7 @@ export default function FilterPanel({
   onClose,
 }) {
   return (
-    <aside className={`filter-panel ${show ? "open" : ""}`}>
+    <aside className="filter-panel">
       <div className="filter-panel-inner">
         <div className="filter-header">
           <h3>Filters</h3>
@@ -27,20 +26,21 @@ export default function FilterPanel({
               type="number"
               value={filters.yearFrom}
               onChange={(e) => onChange("yearFrom", e.target.value)}
-              placeholder="2014"
             />
+
             <span>to</span>
+
             <input
               type="number"
               value={filters.yearTo}
               onChange={(e) => onChange("yearTo", e.target.value)}
-              placeholder="2026"
             />
           </div>
         </div>
 
         <div className="filter-group">
           <label>Author</label>
+
           <input
             type="text"
             placeholder="Search by author name"
@@ -51,6 +51,7 @@ export default function FilterPanel({
 
         <div className="filter-group">
           <label>Research Area</label>
+
           <select
             value={filters.area}
             onChange={(e) => onChange("area", e.target.value)}
@@ -68,12 +69,12 @@ export default function FilterPanel({
 
         <div className="filter-group">
           <label>Min. Citations</label>
+
           <input
             type="number"
             min="0"
             value={filters.minCitations}
             onChange={(e) => onChange("minCitations", e.target.value)}
-            placeholder="0"
           />
         </div>
 

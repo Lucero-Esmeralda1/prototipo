@@ -1,6 +1,12 @@
 import { Search, Filter } from "lucide-react";
 
-export default function SearchBar({ query, setQuery, onSearch, loading }) {
+export default function SearchBar({
+  query,
+  setQuery,
+  onSearch,
+  loading,
+  onToggleFilters,
+}) {
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       onSearch();
@@ -9,7 +15,12 @@ export default function SearchBar({ query, setQuery, onSearch, loading }) {
 
   return (
     <div className="search-row">
-      <button className="filter-btn" type="button">
+      <button
+        className="filter-btn"
+        type="button"
+        onClick={onToggleFilters}
+        title="Abrir filtros"
+      >
         <Filter size={24} />
       </button>
 
