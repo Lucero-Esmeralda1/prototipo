@@ -8,29 +8,21 @@ import {
   CartesianGrid,
 } from "recharts";
 
-// export default function AnalyticsPanel({ papers, graphData, selectedPaper }) {
 export default function AnalyticsPanel({
   papers,
   graphData,
   selectedPaper,
   onOpenPaper,
+  t,
 }) {
   const graphNodes = graphData?.nodes || [];
-
   const mainPaper = graphData?.main_paper || selectedPaper || null;
-
   const sourcePapers = graphNodes.length > 0 ? graphNodes : papers;
 
-  const referencePapers = graphNodes.filter(
-    (paper) => paper.type === "reference"
-  );
-
-  const citingPapers = graphNodes.filter(
-    (paper) => paper.type === "citing_paper"
-  );
+  const referencePapers = graphNodes.filter((paper) => paper.type === "reference");
+  const citingPapers = graphNodes.filter((paper) => paper.type === "citing_paper");
 
   const totalPapers = sourcePapers.length || 0;
-
   const totalCitations = Number(mainPaper?.citation_count || 0);
 
   const influentialPapers = sourcePapers.filter(
@@ -77,40 +69,37 @@ export default function AnalyticsPanel({
   return (
     <div className="analytics-content">
       <div className="analytics-header">
-        <h2>Timeline & Analytics</h2>
-        <p>
-          Indicadores calculados a partir del paper seleccionado y su red de
-          citaciones.
-        </p>
+        <h2>{t.analyticsTitle || "Timeline & Analytics"}</h2>
+        <p>{t.analyticsDescription || "Indicators calculated from the selected paper and its citation network."}</p>
       </div>
 
       <div className="stats-grid">
         <div className="stat-card">
-          <span>Total Papers</span>
+          <span>{t.totalPapers || "Total Papers"}</span>
           <strong>{totalPapers}</strong>
         </div>
 
         <div className="stat-card">
-          <span>Total Citations</span>
+          <span>{t.totalCitations || "Total Citations"}</span>
           <strong>{totalCitations.toLocaleString()}</strong>
         </div>
 
         <div className="stat-card">
-          <span>Citing Papers</span>
+          <span>{t.citingPapers}</span>
           <strong>{citingPapers.length}</strong>
         </div>
 
         <div className="stat-card">
-          <span>Influential Papers</span>
+          <span>{t.influentialPapers || "Influential Papers"}</span>
           <strong>{influentialPapers}</strong>
         </div>
       </div>
 
       <div className="chart-card">
-        <h3>Publications by Year</h3>
+        <h3>{t.publicationsByYear || "Publications by Year"}</h3>
         <p className="chart-description">
-          Muestra la distribución temporal del paper principal, sus referencias y
-          los papers que lo citan.
+          {t.publicationsByYearDescription ||
+            "Shows the temporal distribution of the main paper, its references and citing papers."}
         </p>
 
         <ResponsiveContainer width="100%" height={320}>
@@ -120,60 +109,37 @@ export default function AnalyticsPanel({
             <YAxis stroke="#93c5fd" />
             <Tooltip />
 
-            <Bar
-              dataKey="selectedPaper"
-              name="Selected paper"
-              stackId="a"
-              fill="#2563eb"
-            />
-
-            <Bar
-              dataKey="references"
-              name="References"
-              stackId="a"
-              fill="#10b981"
-            />
-
-            <Bar
-              dataKey="citingPapers"
-              name="Citing papers"
-              stackId="a"
-              fill="#f59e0b"
-            />
-
-            <Bar
-              dataKey="searchResults"
-              name="Search results"
-              stackId="a"
-              fill="#8b5cf6"
-            />
+            <Bar dataKey="selectedPaper" name={t.selectedPaper} stackId="a" fill="#2563eb" />
+            <Bar dataKey="references" name={t.references} stackId="a" fill="#10b981" />
+            <Bar dataKey="citingPapers" name={t.citingPapers} stackId="a" fill="#f59e0b" />
+            <Bar dataKey="searchResults" name={t.searchResults || "Search results"} stackId="a" fill="#8b5cf6" />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
       <div className="chart-card">
-        <h3>Network Composition</h3>
+        <h3>{t.networkComposition || "Network Composition"}</h3>
 
         <div className="composition-grid">
           <div>
-            <span>References</span>
+            <span>{t.references}</span>
             <strong>{referencePapers.length}</strong>
           </div>
 
           <div>
-            <span>Citing Papers</span>
+            <span>{t.citingPapers}</span>
             <strong>{citingPapers.length}</strong>
           </div>
 
           <div>
-            <span>Main Paper Citations</span>
+            <span>{t.mainPaperCitations || "Main Paper Citations"}</span>
             <strong>{totalCitations.toLocaleString()}</strong>
           </div>
         </div>
       </div>
 
       <div className="chart-card">
-        <h3>Most Influential Papers in Network</h3>
+        <h3>{t.mostInfluentialPapers || "Most Influential Papers in Network"}</h3>
 
         <div className="ranking-list">
           {topPapers.map((paper, index) => {
@@ -182,28 +148,18 @@ export default function AnalyticsPanel({
             return (
               <button
                 type="button"
-                className={
-                  paperId
-                    ? "ranking-item ranking-clickable"
-                    : "ranking-item ranking-disabled"
-                }
+                className={paperId ? "ranking-item ranking-clickable" : "ranking-item ranking-disabled"}
                 key={paperId || `${paper.label || paper.title}-${index}`}
                 onClick={() => paperId && onOpenPaper?.(paperId)}
                 disabled={!paperId}
-                title={
-                  paperId
-                    ? "Abrir grafo de este paper en una nueva pestaña"
-                    : "Este paper no tiene ID disponible"
-                }
+                title={paperId ? t.openGraphTitle : t.paperWithoutId || "This paper has no available ID"}
               >
                 <span className="rank-number">{index + 1}</span>
 
                 <div>
-                  <strong>{paper.label || paper.title || "Sin título"}</strong>
+                  <strong>{paper.label || paper.title || t.noTitle}</strong>
                   <p>
-                    {paper.year || "N/A"} · {Number(
-                      paper.citation_count || 0
-                    ).toLocaleString()} citations
+                    {paper.year || "N/A"} · {Number(paper.citation_count || 0).toLocaleString()} {t.citations}
                   </p>
                 </div>
               </button>
@@ -214,4 +170,3 @@ export default function AnalyticsPanel({
     </div>
   );
 }
-

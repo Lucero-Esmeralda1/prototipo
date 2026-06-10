@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import cytoscape from "cytoscape";
 
-export default function CitationGraph({ graphData, onNodeClick }) {
+export default function CitationGraph({ graphData, onNodeClick, t }) {
   const graphRef = useRef(null);
 
   useEffect(() => {
@@ -223,25 +223,25 @@ export default function CitationGraph({ graphData, onNodeClick }) {
   return (
     <div className="graph-section-wrapper">
       <div className="graph-legend-outside">
-        <h4>Legend</h4>
+        <h4>{t.graphLegend || "Legend"}</h4>
 
         <div className="legend-items">
           <span>
-            <i className="dot blue"></i> Selected Paper
+            <i className="dot blue"></i> {t.selectedPaper}
           </span>
 
           <span>
-            <i className="dot green"></i> References
+            <i className="dot green"></i> {t.references}
           </span>
 
           <span>
-            <i className="dot orange"></i> Citing Papers
+            <i className="dot orange"></i> {t.citingPapers}
           </span>
         </div>
       </div>
 
       <div className="graph-tools-outside">
-        Arrastra para mover · Scroll para zoom · Clic en un nodo para ver detalles
+        {t.graphTools || "Arrastra para mover · Scroll para zoom · Clic en un nodo para ver detalles"}
       </div>
 
       <div className="graph-container" ref={graphRef}></div>

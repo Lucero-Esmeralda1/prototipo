@@ -27,6 +27,462 @@ import FilterPanel from "./components/FilterPanel";
 
 import "./App.css";
 
+const TRANSLATIONS = {
+  es: {
+    appSubtitle: "Explorador de Redes de Citaciones",
+    navSearch: "Buscar",
+    navGraph: "Grafo",
+    navNetworkPapers: "Referencias y citantes",
+    navAnalytics: "Analíticas",
+    navChangeTheme: "Cambiar tema",
+    navSettings: "Configuración",
+    navAccount: "Mi cuenta",
+    navLogin: "Iniciar sesión",
+    searchTitle: "Explora investigación científica",
+    searchSubtitle: "Descubre papers y visualiza redes de citaciones",
+    searchPlaceholder: "Buscar por título, DOI, autor, palabras clave o año...",
+    searchButton: "Buscar",
+    searchingButton: "Buscando...",
+    filtersButton: "Abrir filtros",
+    trendingTopics: "Temas en tendencia",
+    resultsFound: "resultados encontrados",
+    showingPage: "Mostrando página",
+    of: "de",
+    noPaperSelected: "No hay paper seleccionado",
+    graphLoadingTitle: "Construyendo grafo...",
+    graphLoadingText: "Estamos consultando OpenAlex y construyendo la red.",
+    graphEmptyText: "Busca un paper para visualizar su red de citaciones",
+    citationNetwork: "Red de citaciones",
+    selectedPaper: "Paper seleccionado",
+    nodes: "nodos",
+    relations: "relaciones",
+    networkTitle: "Referencias y papers citantes",
+    networkDescription:
+      "Lista completa disponible en OpenAlex para el paper seleccionado. El grafo puede seguir limitado para que no se vuelva lento.",
+    references: "Referencias",
+    referencesDescription: "Papers que el paper seleccionado usó como base.",
+    citingPapers: "Papers que lo citaron",
+    citingPapersDescription: "Papers posteriores que citaron al paper seleccionado.",
+    referencesCount: "referencias",
+    citingPapersCount: "papers citantes",
+    noNetworkSelectedTitle: "No hay paper seleccionado",
+    noNetworkSelectedText:
+      "Primero busca un paper y construye su grafo. Luego aquí verás todas sus referencias y todos los papers que lo citaron, distribuidos por páginas.",
+    goToSearch: "Ir a búsqueda",
+    loadingFullList: "Cargando lista completa...",
+    loadingFullListText:
+      "Estamos consultando OpenAlex para obtener todas las referencias y todos los papers citantes disponibles.",
+    cannotLoadList: "No se pudo cargar la lista",
+    noPapersAvailable: "No hay papers disponibles para esta sección.",
+    loadingReferences: "Cargando referencias...",
+    loadingCitingPapers: "Cargando papers citantes...",
+    showing: "Mostrando",
+    results: "resultados",
+    noYear: "Sin año",
+    noTitle: "Sin título",
+    citations: "citas",
+    openGraph: "Abrir grafo",
+    openGraphTitle: "Abrir grafo de este paper en una nueva pestaña",
+    settings: "Configuración",
+    appearance: "Apariencia",
+    theme: "Tema",
+    darkModeActive: "Modo oscuro activado",
+    lightModeActive: "Modo claro activado",
+    notifications: "Notificaciones",
+    newPublications: "Nuevas publicaciones",
+    newPublicationsText: "Notificar cuando haya nuevos papers relevantes",
+    citationUpdates: "Actualizaciones de citas",
+    citationUpdatesText: "Notificar cuando tus papers sean citados",
+    language: "Idioma",
+    spanish: "Español",
+    english: "Inglés",
+    portuguese: "Portugués",
+    privacySecurity: "Privacidad y Seguridad",
+    publicProfile: "Perfil público",
+    publicProfileText: "Permitir que otros vean tu actividad",
+    data: "Datos",
+    exportData: "Exportar datos",
+    exportDataText: "Descargar toda tu información en formato JSON",
+    deleteAccount: "Eliminar cuenta",
+    deleteAccountText: "Eliminar permanentemente tu cuenta y datos",
+    accountNotStarted: "Cuenta no iniciada",
+    accountNotStartedText: "Inicia sesión para administrar tus datos",
+    close: "Cerrar",
+    loginTitle: "Iniciar sesión",
+    registerTitle: "Crear cuenta",
+    fullName: "Nombre completo",
+    email: "Correo electrónico",
+    password: "Contraseña",
+    minPassword: "Mínimo 6 caracteres",
+    loginButton: "Iniciar sesión",
+    registerButton: "Crear cuenta",
+    or: "o",
+    noAccount: "¿No tienes cuenta?",
+    alreadyAccount: "¿Ya tienes cuenta?",
+    registerHere: "Regístrate aquí",
+    loginHere: "Inicia sesión",
+    authTerms:
+      "Al continuar, aceptas nuestros Términos de Servicio y Política de Privacidad",
+    myAccount: "Mi cuenta",
+    registrationDate: "Fecha de registro",
+    notAvailable: "No disponible",
+    logout: "Cerrar sesión",
+    confirmDeleteAccount:
+      "¿Seguro que deseas eliminar tu cuenta? Esta acción no se puede deshacer.",
+    completeAllFields: "Completa todos los campos.",
+    validEmail: "Ingresa un correo válido.",
+    passwordMinError: "La contraseña debe tener mínimo 6 caracteres.",
+    emailExists: "Ya existe una cuenta con este correo.",
+    accountCreated: "Cuenta creada correctamente.",
+    enterEmailPassword: "Ingresa tu correo y contraseña.",
+    wrongCredentials: "Correo o contraseña incorrectos.",
+    loginSuccess: "Sesión iniciada correctamente.",
+    searchError: "Error al buscar papers. Verifica que el backend esté activo.",
+    graphLoadError:
+      "No se pudo cargar el grafo del paper seleccionado. Verifica que el backend esté activo.",
+    networkLoadError:
+      "No se pudo cargar la lista completa de referencias y papers citantes. Verifica que el backend tenga el endpoint /api/network-papers.",
+    topicKnowledgeGraph: "Grafo de conocimiento",
+    topicMachineLearning: "Aprendizaje automático",
+    topicCitationNetwork: "Red de citaciones",
+    topicNLP: "Procesamiento de lenguaje natural",
+    topicComputerVision: "Visión por computadora",
+    filterYearRange: "Año de publicación",
+    filterAuthor: "Autor",
+    filterArea: "Área",
+    filterAllAreas: "Todas las áreas",
+    filterMinCitations: "Citas mínimas",
+    filterApply: "Aplicar filtros",
+    filterReset: "Restablecer",
+    highlyInfluential: "Altamente influyente",
+    unknownAuthors: "Autores desconocidos",
+    noAbstract: "Resumen no disponible.",
+    noTopics: "Sin temas",
+    analyticsTitle: "Línea de tiempo y analíticas",
+    analyticsDescription: "Indicadores calculados a partir del paper seleccionado y su red de citaciones.",
+    totalPapers: "Total de papers",
+    totalCitations: "Total de citas",
+    influentialPapers: "Papers influyentes",
+    publicationsByYear: "Publicaciones por año",
+    publicationsByYearDescription: "Muestra la distribución temporal del paper principal, sus referencias y los papers que lo citan.",
+    searchResults: "Resultados de búsqueda",
+    networkComposition: "Composición de la red",
+    mainPaperCitations: "Citas del paper principal",
+    mostInfluentialPapers: "Papers más influyentes de la red",
+    paperWithoutId: "Este paper no tiene ID disponible",
+    graphLegend: "Leyenda",
+    graphTools: "Arrastra para mover · Scroll para zoom · Clic en un nodo para ver detalles",
+    paperDetails: "Detalles del paper",
+    selectNodeDetails: "Selecciona un nodo para ver sus detalles.",
+    year: "Año",
+    type: "Tipo",
+    topics: "Temas",
+    openInOpenAlex: "Abrir en OpenAlex",
+  },
+  en: {
+    appSubtitle: "Citation Network Explorer",
+    navSearch: "Search",
+    navGraph: "Graph",
+    navNetworkPapers: "References and citing papers",
+    navAnalytics: "Analytics",
+    navChangeTheme: "Change theme",
+    navSettings: "Settings",
+    navAccount: "My account",
+    navLogin: "Log in",
+    searchTitle: "Explore scientific research",
+    searchSubtitle: "Discover papers and visualize citation networks",
+    searchPlaceholder: "Search by title, DOI, author, keywords, or year...",
+    searchButton: "Search",
+    searchingButton: "Searching...",
+    filtersButton: "Open filters",
+    trendingTopics: "Trending topics",
+    resultsFound: "results found",
+    showingPage: "Showing page",
+    of: "of",
+    noPaperSelected: "No paper selected",
+    graphLoadingTitle: "Building graph...",
+    graphLoadingText: "We are querying OpenAlex and building the network.",
+    graphEmptyText: "Search for a paper to visualize its citation network",
+    citationNetwork: "Citation network",
+    selectedPaper: "Selected paper",
+    nodes: "nodes",
+    relations: "relations",
+    networkTitle: "References and citing papers",
+    networkDescription:
+      "Complete list available in OpenAlex for the selected paper. The graph can remain limited so it does not become slow.",
+    references: "References",
+    referencesDescription: "Papers used as a basis by the selected paper.",
+    citingPapers: "Citing papers",
+    citingPapersDescription: "Later papers that cited the selected paper.",
+    referencesCount: "references",
+    citingPapersCount: "citing papers",
+    noNetworkSelectedTitle: "No paper selected",
+    noNetworkSelectedText:
+      "First search for a paper and build its graph. Then you will see all its references and all papers that cited it, distributed by pages.",
+    goToSearch: "Go to search",
+    loadingFullList: "Loading full list...",
+    loadingFullListText:
+      "We are querying OpenAlex to get all available references and all citing papers.",
+    cannotLoadList: "Could not load the list",
+    noPapersAvailable: "No papers available for this section.",
+    loadingReferences: "Loading references...",
+    loadingCitingPapers: "Loading citing papers...",
+    showing: "Showing",
+    results: "results",
+    noYear: "No year",
+    noTitle: "Untitled",
+    citations: "citations",
+    openGraph: "Open graph",
+    openGraphTitle: "Open this paper graph in a new tab",
+    settings: "Settings",
+    appearance: "Appearance",
+    theme: "Theme",
+    darkModeActive: "Dark mode enabled",
+    lightModeActive: "Light mode enabled",
+    notifications: "Notifications",
+    newPublications: "New publications",
+    newPublicationsText: "Notify when there are new relevant papers",
+    citationUpdates: "Citation updates",
+    citationUpdatesText: "Notify when your papers are cited",
+    language: "Language",
+    spanish: "Spanish",
+    english: "English",
+    portuguese: "Portuguese",
+    privacySecurity: "Privacy and Security",
+    publicProfile: "Public profile",
+    publicProfileText: "Allow others to see your activity",
+    data: "Data",
+    exportData: "Export data",
+    exportDataText: "Download all your information in JSON format",
+    deleteAccount: "Delete account",
+    deleteAccountText: "Permanently delete your account and data",
+    accountNotStarted: "No active account",
+    accountNotStartedText: "Log in to manage your data",
+    close: "Close",
+    loginTitle: "Log in",
+    registerTitle: "Create account",
+    fullName: "Full name",
+    email: "Email",
+    password: "Password",
+    minPassword: "Minimum 6 characters",
+    loginButton: "Log in",
+    registerButton: "Create account",
+    or: "or",
+    noAccount: "Don’t have an account?",
+    alreadyAccount: "Already have an account?",
+    registerHere: "Register here",
+    loginHere: "Log in",
+    authTerms:
+      "By continuing, you accept our Terms of Service and Privacy Policy",
+    myAccount: "My account",
+    registrationDate: "Registration date",
+    notAvailable: "Not available",
+    logout: "Log out",
+    confirmDeleteAccount:
+      "Are you sure you want to delete your account? This action cannot be undone.",
+    completeAllFields: "Complete all fields.",
+    validEmail: "Enter a valid email.",
+    passwordMinError: "Password must have at least 6 characters.",
+    emailExists: "An account with this email already exists.",
+    accountCreated: "Account created successfully.",
+    enterEmailPassword: "Enter your email and password.",
+    wrongCredentials: "Incorrect email or password.",
+    loginSuccess: "Session started successfully.",
+    searchError: "Error searching papers. Check that the backend is running.",
+    graphLoadError:
+      "Could not load the selected paper graph. Check that the backend is running.",
+    networkLoadError:
+      "Could not load the complete list of references and citing papers. Check that the backend has the /api/network-papers endpoint.",
+    topicKnowledgeGraph: "Knowledge graph",
+    topicMachineLearning: "Machine learning",
+    topicCitationNetwork: "Citation network",
+    topicNLP: "Natural language processing",
+    topicComputerVision: "Computer vision",
+    filterYearRange: "Publication year",
+    filterAuthor: "Author",
+    filterArea: "Area",
+    filterAllAreas: "All areas",
+    filterMinCitations: "Minimum citations",
+    filterApply: "Apply filters",
+    filterReset: "Reset",
+    highlyInfluential: "Highly Influential",
+    unknownAuthors: "Unknown authors",
+    noAbstract: "No abstract available.",
+    noTopics: "No topics",
+    analyticsTitle: "Timeline & Analytics",
+    analyticsDescription: "Indicators calculated from the selected paper and its citation network.",
+    totalPapers: "Total papers",
+    totalCitations: "Total citations",
+    influentialPapers: "Influential papers",
+    publicationsByYear: "Publications by year",
+    publicationsByYearDescription: "Shows the temporal distribution of the main paper, its references and citing papers.",
+    searchResults: "Search results",
+    networkComposition: "Network composition",
+    mainPaperCitations: "Main paper citations",
+    mostInfluentialPapers: "Most influential papers in network",
+    paperWithoutId: "This paper has no available ID",
+    graphLegend: "Legend",
+    graphTools: "Drag to move · Scroll to zoom · Click a node to see details",
+    paperDetails: "Paper details",
+    selectNodeDetails: "Select a node to see details.",
+    year: "Year",
+    type: "Type",
+    topics: "Topics",
+    openInOpenAlex: "Open in OpenAlex",
+  },
+  pt: {
+    appSubtitle: "Explorador de Redes de Citações",
+    navSearch: "Pesquisar",
+    navGraph: "Grafo",
+    navNetworkPapers: "Referências e citantes",
+    navAnalytics: "Análises",
+    navChangeTheme: "Alterar tema",
+    navSettings: "Configurações",
+    navAccount: "Minha conta",
+    navLogin: "Entrar",
+    searchTitle: "Explore pesquisas científicas",
+    searchSubtitle: "Descubra papers e visualize redes de citações",
+    searchPlaceholder: "Pesquisar por título, DOI, autor, palavras-chave ou ano...",
+    searchButton: "Pesquisar",
+    searchingButton: "Pesquisando...",
+    filtersButton: "Abrir filtros",
+    trendingTopics: "Temas em tendência",
+    resultsFound: "resultados encontrados",
+    showingPage: "Mostrando página",
+    of: "de",
+    noPaperSelected: "Nenhum paper selecionado",
+    graphLoadingTitle: "Construindo grafo...",
+    graphLoadingText: "Estamos consultando o OpenAlex e construindo a rede.",
+    graphEmptyText: "Pesquise um paper para visualizar sua rede de citações",
+    citationNetwork: "Rede de citações",
+    selectedPaper: "Paper selecionado",
+    nodes: "nós",
+    relations: "relações",
+    networkTitle: "Referências e papers citantes",
+    networkDescription:
+      "Lista completa disponível no OpenAlex para o paper selecionado. O grafo pode continuar limitado para não ficar lento.",
+    references: "Referências",
+    referencesDescription: "Papers usados como base pelo paper selecionado.",
+    citingPapers: "Papers que o citaram",
+    citingPapersDescription: "Papers posteriores que citaram o paper selecionado.",
+    referencesCount: "referências",
+    citingPapersCount: "papers citantes",
+    noNetworkSelectedTitle: "Nenhum paper selecionado",
+    noNetworkSelectedText:
+      "Primeiro pesquise um paper e construa seu grafo. Depois você verá todas as referências e todos os papers que o citaram, distribuídos por páginas.",
+    goToSearch: "Ir para pesquisa",
+    loadingFullList: "Carregando lista completa...",
+    loadingFullListText:
+      "Estamos consultando o OpenAlex para obter todas as referências e todos os papers citantes disponíveis.",
+    cannotLoadList: "Não foi possível carregar a lista",
+    noPapersAvailable: "Não há papers disponíveis para esta seção.",
+    loadingReferences: "Carregando referências...",
+    loadingCitingPapers: "Carregando papers citantes...",
+    showing: "Mostrando",
+    results: "resultados",
+    noYear: "Sem ano",
+    noTitle: "Sem título",
+    citations: "citações",
+    openGraph: "Abrir grafo",
+    openGraphTitle: "Abrir o grafo deste paper em uma nova aba",
+    settings: "Configurações",
+    appearance: "Aparência",
+    theme: "Tema",
+    darkModeActive: "Modo escuro ativado",
+    lightModeActive: "Modo claro ativado",
+    notifications: "Notificações",
+    newPublications: "Novas publicações",
+    newPublicationsText: "Notificar quando houver novos papers relevantes",
+    citationUpdates: "Atualizações de citações",
+    citationUpdatesText: "Notificar quando seus papers forem citados",
+    language: "Idioma",
+    spanish: "Espanhol",
+    english: "Inglês",
+    portuguese: "Português",
+    privacySecurity: "Privacidade e Segurança",
+    publicProfile: "Perfil público",
+    publicProfileText: "Permitir que outros vejam sua atividade",
+    data: "Dados",
+    exportData: "Exportar dados",
+    exportDataText: "Baixar todas as suas informações em formato JSON",
+    deleteAccount: "Excluir conta",
+    deleteAccountText: "Excluir permanentemente sua conta e dados",
+    accountNotStarted: "Conta não iniciada",
+    accountNotStartedText: "Entre para gerenciar seus dados",
+    close: "Fechar",
+    loginTitle: "Entrar",
+    registerTitle: "Criar conta",
+    fullName: "Nome completo",
+    email: "E-mail",
+    password: "Senha",
+    minPassword: "Mínimo de 6 caracteres",
+    loginButton: "Entrar",
+    registerButton: "Criar conta",
+    or: "ou",
+    noAccount: "Não tem conta?",
+    alreadyAccount: "Já tem conta?",
+    registerHere: "Cadastre-se aqui",
+    loginHere: "Entrar",
+    authTerms:
+      "Ao continuar, você aceita nossos Termos de Serviço e Política de Privacidade",
+    myAccount: "Minha conta",
+    registrationDate: "Data de cadastro",
+    notAvailable: "Não disponível",
+    logout: "Sair",
+    confirmDeleteAccount:
+      "Tem certeza de que deseja excluir sua conta? Esta ação não pode ser desfeita.",
+    completeAllFields: "Preencha todos os campos.",
+    validEmail: "Digite um e-mail válido.",
+    passwordMinError: "A senha deve ter pelo menos 6 caracteres.",
+    emailExists: "Já existe uma conta com este e-mail.",
+    accountCreated: "Conta criada corretamente.",
+    enterEmailPassword: "Digite seu e-mail e senha.",
+    wrongCredentials: "E-mail ou senha incorretos.",
+    loginSuccess: "Sessão iniciada corretamente.",
+    searchError: "Erro ao pesquisar papers. Verifique se o backend está ativo.",
+    graphLoadError:
+      "Não foi possível carregar o grafo do paper selecionado. Verifique se o backend está ativo.",
+    networkLoadError:
+      "Não foi possível carregar a lista completa de referências e papers citantes. Verifique se o backend tem o endpoint /api/network-papers.",
+    topicKnowledgeGraph: "Grafo de conhecimento",
+    topicMachineLearning: "Aprendizado de máquina",
+    topicCitationNetwork: "Rede de citações",
+    topicNLP: "Processamento de linguagem natural",
+    topicComputerVision: "Visão computacional",
+    filterYearRange: "Ano de publicação",
+    filterAuthor: "Autor",
+    filterArea: "Área",
+    filterAllAreas: "Todas as áreas",
+    filterMinCitations: "Citações mínimas",
+    filterApply: "Aplicar filtros",
+    filterReset: "Redefinir",
+    highlyInfluential: "Altamente influente",
+    unknownAuthors: "Autores desconhecidos",
+    noAbstract: "Resumo não disponível.",
+    noTopics: "Sem temas",
+    analyticsTitle: "Linha do tempo e análises",
+    analyticsDescription: "Indicadores calculados a partir do paper selecionado e sua rede de citações.",
+    totalPapers: "Total de papers",
+    totalCitations: "Total de citações",
+    influentialPapers: "Papers influentes",
+    publicationsByYear: "Publicações por ano",
+    publicationsByYearDescription: "Mostra a distribuição temporal do paper principal, suas referências e os papers que o citaram.",
+    searchResults: "Resultados de pesquisa",
+    networkComposition: "Composição da rede",
+    mainPaperCitations: "Citações do paper principal",
+    mostInfluentialPapers: "Papers mais influentes da rede",
+    paperWithoutId: "Este paper não tem ID disponível",
+    graphLegend: "Legenda",
+    graphTools: "Arraste para mover · Role para dar zoom · Clique em um nó para ver detalhes",
+    paperDetails: "Detalhes do paper",
+    selectNodeDetails: "Selecione um nó para ver detalhes.",
+    year: "Ano",
+    type: "Tipo",
+    topics: "Temas",
+    openInOpenAlex: "Abrir no OpenAlex",
+  },
+};
+
 export default function App() {
   const API_URL = "http://127.0.0.1:8000";
 
@@ -43,6 +499,9 @@ export default function App() {
     language: "es",
     publicProfile: true,
   });
+
+  const language = settings.language || "es";
+  const t = TRANSLATIONS[language] || TRANSLATIONS.es;
 
   const [activeView, setActiveView] = useState("search");
   const [query, setQuery] = useState("");
@@ -78,11 +537,11 @@ export default function App() {
   });
 
   const trendingTopics = [
-    "Knowledge Graph",
-    "Machine Learning",
-    "Citation Network",
-    "Natural Language Processing",
-    "Computer Vision",
+    { query: "Knowledge Graph", label: t.topicKnowledgeGraph },
+    { query: "Machine Learning", label: t.topicMachineLearning },
+    { query: "Citation Network", label: t.topicCitationNetwork },
+    { query: "Natural Language Processing", label: t.topicNLP },
+    { query: "Computer Vision", label: t.topicComputerVision },
   ];
 
   useEffect(() => {
@@ -99,9 +558,13 @@ export default function App() {
     }
 
     if (savedSettings) {
-      setSettings(JSON.parse(savedSettings));
+      setSettings((prev) => ({ ...prev, ...JSON.parse(savedSettings) }));
     }
   }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
 
   const toggleTheme = () => {
     setTheme((prev) => {
@@ -197,21 +660,21 @@ export default function App() {
     if (!cleanName || !cleanEmail || !password) {
       return {
         ok: false,
-        message: "Completa todos los campos.",
+        message: t.completeAllFields,
       };
     }
 
     if (!cleanEmail.includes("@")) {
       return {
         ok: false,
-        message: "Ingresa un correo válido.",
+        message: t.validEmail,
       };
     }
 
     if (password.length < 6) {
       return {
         ok: false,
-        message: "La contraseña debe tener mínimo 6 caracteres.",
+        message: t.passwordMinError,
       };
     }
 
@@ -222,7 +685,7 @@ export default function App() {
     if (exists) {
       return {
         ok: false,
-        message: "Ya existe una cuenta con este correo.",
+        message: t.emailExists,
       };
     }
 
@@ -255,7 +718,7 @@ export default function App() {
 
     return {
       ok: true,
-      message: "Cuenta creada correctamente.",
+      message: t.accountCreated,
     };
   };
 
@@ -265,7 +728,7 @@ export default function App() {
     if (!cleanEmail || !password) {
       return {
         ok: false,
-        message: "Ingresa tu correo y contraseña.",
+        message: t.enterEmailPassword,
       };
     }
 
@@ -278,7 +741,7 @@ export default function App() {
     if (!user) {
       return {
         ok: false,
-        message: "Correo o contraseña incorrectos.",
+        message: t.wrongCredentials,
       };
     }
 
@@ -300,7 +763,7 @@ export default function App() {
 
     return {
       ok: true,
-      message: "Sesión iniciada correctamente.",
+      message: t.loginSuccess,
     };
   };
 
@@ -315,9 +778,7 @@ export default function App() {
   const handleDeleteAccount = () => {
     if (!currentUser) return;
 
-    const confirmDelete = window.confirm(
-      "¿Seguro que deseas eliminar tu cuenta? Esta acción no se puede deshacer."
-    );
+    const confirmDelete = window.confirm(t.confirmDeleteAccount);
 
     if (!confirmDelete) return;
 
@@ -331,33 +792,6 @@ export default function App() {
     setShowAccount(false);
     setShowAuth(true);
     setAuthMode("register");
-  };
-
-  const applyFiltersToPapers = (paperList, activeFilters) => {
-    return paperList.filter((paper) => {
-      const paperYear = Number(paper.year || 0);
-      const yearFrom = Number(activeFilters.yearFrom || 0);
-      const yearTo = Number(activeFilters.yearTo || 9999);
-      const minCitations = Number(activeFilters.minCitations || 0);
-
-      const authorsText = (paper.authors || []).join(" ").toLowerCase();
-      const topicsText = (paper.topics || []).join(" ").toLowerCase();
-      const citations = Number(paper.citation_count || 0);
-
-      const yearOk = paperYear >= yearFrom && paperYear <= yearTo;
-
-      const authorOk =
-        !activeFilters.author.trim() ||
-        authorsText.includes(activeFilters.author.trim().toLowerCase());
-
-      const areaOk =
-        activeFilters.area === "all" ||
-        topicsText.includes(activeFilters.area.toLowerCase());
-
-      const citationOk = citations >= minCitations;
-
-      return yearOk && authorOk && areaOk && citationOk;
-    });
   };
 
   const handleFilterChange = (key, value) => {
@@ -439,7 +873,7 @@ export default function App() {
       setActiveView("search");
     } catch (error) {
       console.error("Error buscando papers:", error);
-      alert("Error al buscar papers. Verifica que el backend esté activo.");
+      alert(t.searchError);
     } finally {
       setLoading(false);
     }
@@ -473,7 +907,7 @@ export default function App() {
       setSelectedPaper(response.data?.main_paper || null);
     } catch (error) {
       console.error("Error construyendo grafo:", error);
-      setGraphError("No se pudo cargar el grafo del paper seleccionado. Verifica que el backend esté activo.");
+      setGraphError(t.graphLoadError);
       setActiveView("graph");
     } finally {
       setLoading(false);
@@ -520,9 +954,7 @@ export default function App() {
       }
     } catch (error) {
       console.error("Error cargando referencias y citantes:", error);
-      setNetworkError(
-        "No se pudo cargar la lista completa de referencias y papers citantes. Verifica que el backend tenga el endpoint /api/network-papers."
-      );
+      setNetworkError(t.networkLoadError);
     } finally {
       setNetworkLoading(false);
     }
@@ -557,6 +989,7 @@ export default function App() {
       localStorage.removeItem("researchgraph_pending_paper_id");
       loadGraphByPaperId(paperId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const changeView = (view) => {
@@ -582,13 +1015,14 @@ export default function App() {
         openSettings={openSettings}
         openAuth={openAuth}
         currentUser={currentUser}
+        t={t}
       />
 
       <div className="app-main">
         <header className="topbar">
           <div>
             <h1>ResearchGraph</h1>
-            <p>Citation Network Explorer</p>
+            <p>{t.appSubtitle}</p>
           </div>
 
           {currentUser && (
@@ -599,89 +1033,95 @@ export default function App() {
         </header>
 
         {activeView === "search" && (
-  <main className="search-page">
-    <div className="search-page-layout">
-      {showFilters && (
-        <FilterPanel
-          filters={filters}
-          onChange={handleFilterChange}
-          onApply={handleApplyFilters}
-          onReset={handleResetFilters}
-          onClose={() => setShowFilters(false)}
-        />
-      )}
-
-      <div className="search-content-area">
-        <section className="hero-section">
-          <h2>Explore Scientific Research</h2>
-          <p>Discover papers and visualize citation networks</p>
-
-          <SearchBar
-            query={query}
-            setQuery={setQuery}
-            onSearch={() => handleSearch()}
-            loading={loading}
-            // onToggleFilters={() => setShowFilters(true)}
-            onToggleFilters={() => setShowFilters((prev) => !prev)}
-          />
-
-          <div className="trending-section">
-            <h3>Trending Topics</h3>
-
-            <div className="topic-list">
-              {trendingTopics.map((topic) => (
-                <button
-                  key={topic}
-                  className="topic-chip"
-                  onClick={() => handleSearch(topic)}
-                >
-                  {topic}
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {papers.length > 0 && (
-          <section className="results-area">
-            <div className="section-title">
-              <h3>{totalResults.toLocaleString()} results found</h3>
-              <span>Showing page {page} of {totalPages || 1}</span>
-            </div>
-
-            <div className="paper-list">
-              {papers.map((paper) => (
-                <PaperCard
-                  key={paper.paper_id}
-                  paper={paper}
-                  onSelect={handleSelectPaper}
+          <main className="search-page">
+            <div className="search-page-layout">
+              {showFilters && (
+                <FilterPanel
+                  filters={filters}
+                  onChange={handleFilterChange}
+                  onApply={handleApplyFilters}
+                  onReset={handleResetFilters}
+                  onClose={() => setShowFilters(false)}
+                  t={t}
                 />
-              ))}
-            </div>
+              )}
 
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              onPageChange={(newPage) => handleSearch(query, newPage, filters)}
-            />
-          </section>
+              <div className="search-content-area">
+                <section className="hero-section">
+                  <h2>{t.searchTitle}</h2>
+                  <p>{t.searchSubtitle}</p>
+
+                  <SearchBar
+                    query={query}
+                    setQuery={setQuery}
+                    onSearch={() => handleSearch()}
+                    loading={loading}
+                    onToggleFilters={() => setShowFilters((prev) => !prev)}
+                    t={t}
+                  />
+
+                  <div className="trending-section">
+                    <h3>{t.trendingTopics}</h3>
+
+                    <div className="topic-list">
+                      {trendingTopics.map((topic) => (
+                        <button
+                          key={topic.query}
+                          className="topic-chip"
+                          onClick={() => handleSearch(topic.query)}
+                        >
+                          {topic.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+
+                {papers.length > 0 && (
+                  <section className="results-area">
+                    <div className="section-title">
+                      <h3>
+                        {totalResults.toLocaleString()} {t.resultsFound}
+                      </h3>
+                      <span>
+                        {t.showingPage} {page} {t.of} {totalPages || 1}
+                      </span>
+                    </div>
+
+                    <div className="paper-list">
+                      {papers.map((paper) => (
+                        <PaperCard
+                          key={paper.paper_id}
+                          paper={paper}
+                          onSelect={handleSelectPaper}
+                          t={t}
+                        />
+                      ))}
+                    </div>
+
+                    <Pagination
+                      page={page}
+                      totalPages={totalPages}
+                      onPageChange={(newPage) =>
+                        handleSearch(query, newPage, filters)
+                      }
+                    />
+                  </section>
+                )}
+              </div>
+            </div>
+          </main>
         )}
-      </div>
-    </div>
-  </main>
-)}
 
         {activeView === "graph" && (
           <main className="graph-page">
             {!graphData ? (
               <div className="empty-graph">
                 <div className="empty-icon">↯</div>
-                <h2>{loading ? "Construyendo grafo..." : "No Paper Selected"}</h2>
+                <h2>{loading ? t.graphLoadingTitle : t.noPaperSelected}</h2>
                 <p>
                   {graphError ||
-                    (loading
-                      ? "Estamos consultando OpenAlex y construyendo la red."
-                      : "Search for a paper to visualize its citation network")}
+                    (loading ? t.graphLoadingText : t.graphEmptyText)}
                 </p>
               </div>
             ) : (
@@ -689,22 +1129,26 @@ export default function App() {
                 <section className="graph-main-full">
                   <div className="graph-header">
                     <div>
-                      <h2>Citation Network</h2>
+                      <h2>{t.citationNetwork}</h2>
                       <p>
-                        Selected paper:{" "}
-                        <strong>{graphData.main_paper?.title}</strong>
+                        {t.selectedPaper}: <strong>{graphData.main_paper?.title}</strong>
                       </p>
                     </div>
 
                     <div className="graph-stats">
-                      <span>{graphData.nodes?.length || 0} nodes</span>
-                      <span>{graphData.edges?.length || 0} relations</span>
+                      <span>
+                        {graphData.nodes?.length || 0} {t.nodes}
+                      </span>
+                      <span>
+                        {graphData.edges?.length || 0} {t.relations}
+                      </span>
                     </div>
                   </div>
 
                   <CitationGraph
                     graphData={graphData}
                     onNodeClick={setSelectedNode}
+                    t={t}
                   />
                 </section>
 
@@ -712,6 +1156,7 @@ export default function App() {
                   <PaperDetailsPanel
                     paper={graphData?.main_paper || selectedPaper}
                     selectedNode={selectedNode}
+                    t={t}
                   />
                 </section>
               </>
@@ -736,6 +1181,7 @@ export default function App() {
             onCitingPageChange={(newPage) =>
               loadNetworkPapersByPaperId(getCurrentPaperId(), referencePage, newPage)
             }
+            t={t}
           />
         )}
 
@@ -746,6 +1192,7 @@ export default function App() {
               graphData={graphData}
               selectedPaper={selectedPaper}
               onOpenPaper={openPaperInNewTab}
+              t={t}
             />
           </main>
         )}
@@ -761,6 +1208,7 @@ export default function App() {
           onClose={closeModals}
           onExportData={handleExportData}
           onDeleteAccount={handleDeleteAccount}
+          t={t}
         />
       )}
 
@@ -771,6 +1219,7 @@ export default function App() {
           onClose={closeModals}
           onLogin={handleLogin}
           onRegister={handleRegister}
+          t={t}
         />
       )}
 
@@ -780,12 +1229,12 @@ export default function App() {
           onClose={closeModals}
           onLogout={handleLogout}
           onDeleteAccount={handleDeleteAccount}
+          t={t}
         />
       )}
     </div>
   );
 }
-
 
 function NetworkPapersView({
   graphData,
@@ -799,6 +1248,7 @@ function NetworkPapersView({
   onGoSearch,
   onReferencePageChange,
   onCitingPageChange,
+  t,
 }) {
   const mainPaper =
     networkData?.main_paper || graphData?.main_paper || selectedPaper || null;
@@ -827,42 +1277,37 @@ function NetworkPapersView({
     const currentPage = Number(info?.page || 1);
     const perPage = Number(info?.per_page || items.length || 20);
 
-    if (!total) return "0 resultados";
+    if (!total) return `0 ${t.results}`;
 
     const start = (currentPage - 1) * perPage + 1;
     const end = Math.min(start + items.length - 1, total);
 
-    return `Mostrando ${start.toLocaleString()}-${end.toLocaleString()} de ${total.toLocaleString()}`;
+    return `${t.showing} ${start.toLocaleString()}-${end.toLocaleString()} ${t.of} ${total.toLocaleString()}`;
   };
 
   const renderPaperList = (items, type, currentPage, perPage) => {
     if (!items.length) {
-      return (
-        <div className="network-empty-list">
-          No hay papers disponibles para esta sección.
-        </div>
-      );
+      return <div className="network-empty-list">{t.noPapersAvailable}</div>;
     }
 
     return (
       <div className="network-paper-list">
         {items.map((paper, index) => {
           const paperId = paper.paper_id || paper.id;
-          const title = paper.title || paper.label || "Sin título";
+          const title = paper.title || paper.label || t.noTitle;
           const displayIndex = (currentPage - 1) * perPage + index + 1;
 
           return (
             <article className="network-paper-item" key={paperId || index}>
-              <div className={`network-paper-number ${type}`}>
-                {displayIndex}
-              </div>
+              <div className={`network-paper-number ${type}`}>{displayIndex}</div>
 
               <div className="network-paper-info">
                 <h4>{title}</h4>
 
                 <p>
-                  {paper.year || "Sin año"} ·{" "}
-                  {Number(paper.citation_count || 0).toLocaleString()} citas
+                  {paper.year || t.noYear} · {Number(
+                    paper.citation_count || 0
+                  ).toLocaleString()} {t.citations}
                 </p>
 
                 {paperId && <span>{paperId}</span>}
@@ -873,9 +1318,9 @@ function NetworkPapersView({
                 className="network-paper-open-btn"
                 onClick={() => onOpenPaper?.(paperId)}
                 disabled={!paperId}
-                title="Abrir grafo de este paper en una nueva pestaña"
+                title={t.openGraphTitle}
               >
-                Abrir grafo
+                {t.openGraph}
               </button>
             </article>
           );
@@ -889,11 +1334,8 @@ function NetworkPapersView({
       <main className="network-papers-page">
         <div className="empty-graph">
           <div className="empty-icon">⏳</div>
-          <h2>Cargando lista completa...</h2>
-          <p>
-            Estamos consultando OpenAlex para obtener todas las referencias y
-            todos los papers citantes disponibles.
-          </p>
+          <h2>{t.loadingFullList}</h2>
+          <p>{t.loadingFullListText}</p>
         </div>
       </main>
     );
@@ -904,7 +1346,7 @@ function NetworkPapersView({
       <main className="network-papers-page">
         <div className="empty-graph">
           <div className="empty-icon">!</div>
-          <h2>No se pudo cargar la lista</h2>
+          <h2>{t.cannotLoadList}</h2>
           <p>{routeError}</p>
         </div>
       </main>
@@ -916,14 +1358,11 @@ function NetworkPapersView({
       <main className="network-papers-page">
         <div className="network-empty-state">
           <div className="empty-icon">☰</div>
-          <h2>No hay paper seleccionado</h2>
-          <p>
-            Primero busca un paper y construye su grafo. Luego aquí verás todas
-            sus referencias y todos los papers que lo citaron, distribuidos por páginas.
-          </p>
+          <h2>{t.noNetworkSelectedTitle}</h2>
+          <p>{t.noNetworkSelectedText}</p>
 
           <button type="button" onClick={onGoSearch}>
-            Ir a búsqueda
+            {t.goToSearch}
           </button>
         </div>
       </main>
@@ -934,38 +1373,40 @@ function NetworkPapersView({
     <main className="network-papers-page">
       <section className="network-papers-header">
         <div>
-          <h2>References & Citing Papers</h2>
-          <p>
-            Lista completa disponible en OpenAlex para el paper seleccionado.
-            El grafo puede seguir limitado para que no se vuelva lento.
-          </p>
+          <h2>{t.networkTitle}</h2>
+          <p>{t.networkDescription}</p>
         </div>
 
         <div className="network-papers-stats">
-          <span>{Number(referencesInfo.total || 0).toLocaleString()} referencias</span>
-          <span>{Number(citingInfo.total || 0).toLocaleString()} papers citantes</span>
+          <span>
+            {Number(referencesInfo.total || 0).toLocaleString()} {t.referencesCount}
+          </span>
+          <span>
+            {Number(citingInfo.total || 0).toLocaleString()} {t.citingPapersCount}
+          </span>
         </div>
       </section>
 
       <section className="network-main-paper-card">
-        <span>Paper seleccionado</span>
-        <h3>{mainPaper?.title || mainPaper?.label || "Sin título"}</h3>
+        <span>{t.selectedPaper}</span>
+        <h3>{mainPaper?.title || mainPaper?.label || t.noTitle}</h3>
         <p>
-          {mainPaper?.year || "Sin año"} ·{" "}
-          {Number(mainPaper?.citation_count || 0).toLocaleString()} citas
+          {mainPaper?.year || t.noYear} · {Number(
+            mainPaper?.citation_count || 0
+          ).toLocaleString()} {t.citations}
         </p>
       </section>
 
       <section className="network-paper-columns">
         <div className="network-paper-column">
           <div className="network-column-title">
-            <h3>Referencias</h3>
-            <span>Papers que el paper seleccionado usó como base.</span>
+            <h3>{t.references}</h3>
+            <span>{t.referencesDescription}</span>
             <strong>{getShowingText(referencesInfo, references)}</strong>
           </div>
 
           {loading ? (
-            <div className="network-empty-list">Cargando referencias...</div>
+            <div className="network-empty-list">{t.loadingReferences}</div>
           ) : (
             renderPaperList(
               references,
@@ -984,13 +1425,13 @@ function NetworkPapersView({
 
         <div className="network-paper-column">
           <div className="network-column-title">
-            <h3>Papers que lo citaron</h3>
-            <span>Papers posteriores que citaron al paper seleccionado.</span>
+            <h3>{t.citingPapers}</h3>
+            <span>{t.citingPapersDescription}</span>
             <strong>{getShowingText(citingInfo, citingPapers)}</strong>
           </div>
 
           {loading ? (
-            <div className="network-empty-list">Cargando papers citantes...</div>
+            <div className="network-empty-list">{t.loadingCitingPapers}</div>
           ) : (
             renderPaperList(
               citingPapers,
@@ -1020,12 +1461,13 @@ function SettingsModal({
   onClose,
   onExportData,
   onDeleteAccount,
+  t,
 }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="settings-popup" onClick={(e) => e.stopPropagation()}>
         <div className="popup-header">
-          <h2>Configuración</h2>
+          <h2>{t.settings}</h2>
 
           <button className="popup-close" onClick={onClose}>
             <X size={18} />
@@ -1038,17 +1480,13 @@ function SettingsModal({
               <span className="section-icon blue-soft">
                 <Palette size={18} />
               </span>
-              <h3>Apariencia</h3>
+              <h3>{t.appearance}</h3>
             </div>
 
             <div className="setting-card">
               <div>
-                <strong>Tema</strong>
-                <p>
-                  {theme === "dark"
-                    ? "Modo oscuro activado"
-                    : "Modo claro activado"}
-                </p>
+                <strong>{t.theme}</strong>
+                <p>{theme === "dark" ? t.darkModeActive : t.lightModeActive}</p>
               </div>
 
               <label className="modern-switch">
@@ -1067,13 +1505,13 @@ function SettingsModal({
               <span className="section-icon green-soft">
                 <Bell size={18} />
               </span>
-              <h3>Notificaciones</h3>
+              <h3>{t.notifications}</h3>
             </div>
 
             <div className="setting-card">
               <div>
-                <strong>Nuevas publicaciones</strong>
-                <p>Notificar cuando haya nuevos papers relevantes</p>
+                <strong>{t.newPublications}</strong>
+                <p>{t.newPublicationsText}</p>
               </div>
 
               <label className="modern-switch">
@@ -1090,8 +1528,8 @@ function SettingsModal({
 
             <div className="setting-card">
               <div>
-                <strong>Actualizaciones de citas</strong>
-                <p>Notificar cuando tus papers sean citados</p>
+                <strong>{t.citationUpdates}</strong>
+                <p>{t.citationUpdatesText}</p>
               </div>
 
               <label className="modern-switch">
@@ -1112,7 +1550,7 @@ function SettingsModal({
               <span className="section-icon purple-soft">
                 <Globe size={18} />
               </span>
-              <h3>Idioma</h3>
+              <h3>{t.language}</h3>
             </div>
 
             <select
@@ -1120,9 +1558,9 @@ function SettingsModal({
               value={settings.language}
               onChange={(e) => updateSetting("language", e.target.value)}
             >
-              <option value="es">Español</option>
-              <option value="en">Inglés</option>
-              <option value="pt">Portugués</option>
+              <option value="es">{t.spanish}</option>
+              <option value="en">{t.english}</option>
+              <option value="pt">{t.portuguese}</option>
             </select>
           </section>
 
@@ -1131,13 +1569,13 @@ function SettingsModal({
               <span className="section-icon orange-soft">
                 <Shield size={18} />
               </span>
-              <h3>Privacidad y Seguridad</h3>
+              <h3>{t.privacySecurity}</h3>
             </div>
 
             <div className="setting-card">
               <div>
-                <strong>Perfil público</strong>
-                <p>Permitir que otros vean tu actividad</p>
+                <strong>{t.publicProfile}</strong>
+                <p>{t.publicProfileText}</p>
               </div>
 
               <label className="modern-switch">
@@ -1158,23 +1596,23 @@ function SettingsModal({
               <span className="section-icon red-soft">
                 <Database size={18} />
               </span>
-              <h3>Datos</h3>
+              <h3>{t.data}</h3>
             </div>
 
             <button className="data-action" onClick={onExportData}>
-              <strong>Exportar datos</strong>
-              <span>Descargar toda tu información en formato JSON</span>
+              <strong>{t.exportData}</strong>
+              <span>{t.exportDataText}</span>
             </button>
 
             {currentUser ? (
               <button className="danger-action" onClick={onDeleteAccount}>
-                <strong>Eliminar cuenta</strong>
-                <span>Eliminar permanentemente tu cuenta y datos</span>
+                <strong>{t.deleteAccount}</strong>
+                <span>{t.deleteAccountText}</span>
               </button>
             ) : (
               <button className="data-action disabled-action" disabled>
-                <strong>Cuenta no iniciada</strong>
-                <span>Inicia sesión para administrar tus datos</span>
+                <strong>{t.accountNotStarted}</strong>
+                <span>{t.accountNotStartedText}</span>
               </button>
             )}
           </section>
@@ -1182,7 +1620,7 @@ function SettingsModal({
 
         <div className="popup-footer">
           <button className="popup-secondary-btn" onClick={onClose}>
-            Cerrar
+            {t.close}
           </button>
         </div>
       </div>
@@ -1190,7 +1628,7 @@ function SettingsModal({
   );
 }
 
-function AuthModal({ authMode, setAuthMode, onClose, onLogin, onRegister }) {
+function AuthModal({ authMode, setAuthMode, onClose, onLogin, onRegister, t }) {
   const isLogin = authMode === "login";
 
   const [fullName, setFullName] = useState("");
@@ -1225,7 +1663,7 @@ function AuthModal({ authMode, setAuthMode, onClose, onLogin, onRegister }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="auth-popup" onClick={(e) => e.stopPropagation()}>
         <div className="popup-header">
-          <h2>{isLogin ? "Iniciar Sesión" : "Crear Cuenta"}</h2>
+          <h2>{isLogin ? t.loginTitle : t.registerTitle}</h2>
 
           <button className="popup-close" onClick={onClose}>
             <X size={18} />
@@ -1235,7 +1673,7 @@ function AuthModal({ authMode, setAuthMode, onClose, onLogin, onRegister }) {
         <form className="auth-popup-form">
           {!isLogin && (
             <label>
-              Nombre completo
+              {t.fullName}
               <div className="input-icon-box">
                 <User size={17} />
                 <input
@@ -1249,7 +1687,7 @@ function AuthModal({ authMode, setAuthMode, onClose, onLogin, onRegister }) {
           )}
 
           <label>
-            Correo electrónico
+            {t.email}
             <div className="input-icon-box">
               <Mail size={17} />
               <input
@@ -1262,7 +1700,7 @@ function AuthModal({ authMode, setAuthMode, onClose, onLogin, onRegister }) {
           </label>
 
           <label>
-            Contraseña
+            {t.password}
             <div className="input-icon-box">
               <Lock size={17} />
               <input
@@ -1282,56 +1720,47 @@ function AuthModal({ authMode, setAuthMode, onClose, onLogin, onRegister }) {
             </div>
           </label>
 
-          {!isLogin && <p className="password-help">Mínimo 6 caracteres</p>}
+          {!isLogin && <p className="password-help">{t.minPassword}</p>}
 
           {authMessage && <p className="auth-error">{authMessage}</p>}
 
           <button type="button" className="auth-primary-btn" onClick={submitAuth}>
-            {isLogin ? "Iniciar Sesión" : "Crear Cuenta"}
+            {isLogin ? t.loginButton : t.registerButton}
           </button>
         </form>
 
         <div className="auth-divider">
-          <span>o</span>
+          <span>{t.or}</span>
         </div>
 
         <div className="auth-change">
           {isLogin ? (
             <p>
-              ¿No tienes cuenta?{" "}
-              <button onClick={() => changeMode("register")}>
-                Regístrate aquí
-              </button>
+              {t.noAccount} <button onClick={() => changeMode("register")}>{t.registerHere}</button>
             </p>
           ) : (
             <p>
-              ¿Ya tienes cuenta?{" "}
-              <button onClick={() => changeMode("login")}>
-                Inicia sesión
-              </button>
+              {t.alreadyAccount} <button onClick={() => changeMode("login")}>{t.loginHere}</button>
             </p>
           )}
         </div>
 
-        <p className="auth-terms">
-          Al continuar, aceptas nuestros Términos de Servicio y Política de
-          Privacidad
-        </p>
+        <p className="auth-terms">{t.authTerms}</p>
       </div>
     </div>
   );
 }
 
-function AccountModal({ currentUser, onClose, onLogout, onDeleteAccount }) {
+function AccountModal({ currentUser, onClose, onLogout, onDeleteAccount, t }) {
   const createdDate = currentUser?.createdAt
     ? new Date(currentUser.createdAt).toLocaleDateString()
-    : "No disponible";
+    : t.notAvailable;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="account-popup" onClick={(e) => e.stopPropagation()}>
         <div className="popup-header">
-          <h2>Mi Cuenta</h2>
+          <h2>{t.myAccount}</h2>
 
           <button className="popup-close" onClick={onClose}>
             <X size={18} />
@@ -1347,18 +1776,18 @@ function AccountModal({ currentUser, onClose, onLogout, onDeleteAccount }) {
           <p>{currentUser.email}</p>
 
           <div className="account-info-card">
-            <span>Fecha de registro</span>
+            <span>{t.registrationDate}</span>
             <strong>{createdDate}</strong>
           </div>
 
           <button className="account-action-btn" onClick={onLogout}>
             <LogOut size={17} />
-            Cerrar sesión
+            {t.logout}
           </button>
 
           <button className="account-danger-btn" onClick={onDeleteAccount}>
             <Trash2 size={17} />
-            Eliminar cuenta
+            {t.deleteAccount}
           </button>
         </div>
       </div>
@@ -1396,11 +1825,7 @@ function Pagination({ page, totalPages, onPageChange }) {
       {pages.map((pageNumber) => (
         <button
           key={pageNumber}
-          className={
-            pageNumber === page
-              ? "pagination-btn active"
-              : "pagination-btn"
-          }
+          className={pageNumber === page ? "pagination-btn active" : "pagination-btn"}
           onClick={() => onPageChange(pageNumber)}
         >
           {pageNumber}

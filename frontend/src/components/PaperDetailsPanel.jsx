@@ -1,82 +1,71 @@
-export default function PaperDetailsPanel({ paper, selectedNode }) {
-  const title = selectedNode?.label || paper?.title || "No paper selected";
+export default function PaperDetailsPanel({ paper, selectedNode, t }) {
+  const currentPaper = selectedNode || paper;
+
+  if (!currentPaper) {
+    return (
+      <aside className="details-panel">
+        <h2>{t.paperDetails || "Paper Details"}</h2>
+        <p className="muted-text">{t.selectNodeDetails || "Select a node to see details."}</p>
+      </aside>
+    );
+  }
+
+  const title = currentPaper.title || currentPaper.label || t.noTitle;
+  const authors = Array.isArray(currentPaper.authors)
+    ? currentPaper.authors.join(", ")
+    : currentPaper.authors || t.unknownAuthors || "Unknown authors";
+  const topics = Array.isArray(currentPaper.topics)
+    ? currentPaper.topics.join(", ")
+    : currentPaper.topics || t.noTopics || "No topics";
+
+  const openAlexUrl = currentPaper.paper_id || currentPaper.id;
 
   return (
     <aside className="details-panel">
-      <h2>Paper Details</h2>
+      <h2>{t.paperDetails || "Paper Details"}</h2>
+      <h3>{title}</h3>
 
-      {!paper && !selectedNode ? (
-        <p className="muted-text">
-          Select a paper or graph node to see details.
-        </p>
-      ) : (
-        <>
-          <h3>{title}</h3>
+      <p className="muted-text">{authors}</p>
 
-          <div className="detail-grid">
-            <div>
-              <span>Type</span>
-              <strong>{selectedNode?.type || paper?.type || "Paper"}</strong>
-            </div>
+      <div className="detail-grid">
+        <div>
+          <span>{t.year || "Year"}</span>
+          <strong>{currentPaper.year || t.noYear}</strong>
+        </div>
 
-            <div>
-              <span>Year</span>
-              <strong>{selectedNode?.year || paper?.year || "N/A"}</strong>
-            </div>
+        <div>
+          <span>{t.citations}</span>
+          <strong>{Number(currentPaper.citation_count || 0).toLocaleString()}</strong>
+        </div>
 
-            <div>
-              <span>Citations</span>
-              <strong>
-                {selectedNode?.citation_count || paper?.citation_count || 0}
-              </strong>
-            </div>
+        <div>
+          <span>{t.type || "Type"}</span>
+          <strong>{currentPaper.type || "N/A"}</strong>
+        </div>
 
-            <div>
-              <span>References</span>
-              <strong>{paper?.references_count || 0}</strong>
-            </div>
-          </div>
+        <div>
+          <span>DOI</span>
+          <strong>{currentPaper.doi || "N/A"}</strong>
+        </div>
+      </div>
 
-          {paper?.authors?.length > 0 && (
-            <div className="detail-block">
-              <h4>Authors</h4>
-              <p>{paper.authors.join(", ")}</p>
-            </div>
-          )}
+      <div className="detail-block">
+        <h4>Abstract</h4>
+        <div className="abstract-box">
+          <p>{currentPaper.abstract || t.noAbstract || "No abstract available."}</p>
+        </div>
+      </div>
 
-          {paper?.topics?.length > 0 && (
-            <div className="detail-block">
-              <h4>Topics</h4>
-              <div className="topic-list small">
-                {paper.topics.slice(0, 5).map((topic) => (
-                  <span className="topic-chip small" key={topic}>
-                    {topic}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+      <div className="detail-block">
+        <h4>{t.topics || "Topics"}</h4>
+        <p>{topics}</p>
+      </div>
 
-          {paper?.abstract && (
-            <div className="detail-block">
-              <h4>Abstract</h4>
-              <p className="abstract-box">{paper.abstract}</p>
-            </div>
-          )}
-
-          {paper?.paper_id && (
-            <a
-              className="openalex-link"
-              href={paper.paper_id}
-              target="_blank"
-              rel="noreferrer"
-            >
-              View in OpenAlex
-            </a>
-          )}
-        </>
+      {openAlexUrl && String(openAlexUrl).startsWith("http") && (
+        <a className="openalex-link" href={openAlexUrl} target="_blank" rel="noreferrer">
+          {t.openInOpenAlex || "Open in OpenAlex"}
+        </a>
       )}
     </aside>
   );
 }
-

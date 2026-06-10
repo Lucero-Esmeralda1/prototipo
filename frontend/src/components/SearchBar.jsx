@@ -6,11 +6,10 @@ export default function SearchBar({
   onSearch,
   loading,
   onToggleFilters,
+  t,
 }) {
   const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      onSearch();
-    }
+    if (e.key === "Enter") onSearch();
   };
 
   return (
@@ -19,17 +18,16 @@ export default function SearchBar({
         className="filter-btn"
         type="button"
         onClick={onToggleFilters}
-        title="Abrir filtros"
+        title={t.filtersButton}
       >
         <Filter size={24} />
       </button>
 
       <div className="search-input-box">
         <Search size={22} />
-
         <input
           type="text"
-          placeholder="Search by title, DOI, author, keywords, or year..."
+          placeholder={t.searchPlaceholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -37,7 +35,7 @@ export default function SearchBar({
       </div>
 
       <button className="search-btn" onClick={onSearch} disabled={loading}>
-        {loading ? "Searching..." : "Search"}
+        {loading ? t.searchingButton : t.searchButton}
       </button>
     </div>
   );
