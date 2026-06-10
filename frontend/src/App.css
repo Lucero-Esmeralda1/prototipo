@@ -1724,6 +1724,48 @@ button {
     min-width: 260px;
   }
 }
+/* =========================
+   PAGINATION
+========================= */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 34px;
+  flex-wrap: wrap;
+}
+
+.pagination-btn {
+  min-width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: var(--bg-panel-soft);
+  color: var(--text-main);
+  font-weight: 800;
+  cursor: pointer;
+  transition: 0.2s;
+  border: 1px solid var(--border);
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #2563eb;
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+.pagination-btn.active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 
 /* =========================
    CLICKABLE ANALYTICS PAPERS
@@ -1735,7 +1777,6 @@ button {
   text-align: left;
   color: inherit;
   cursor: pointer;
-  font: inherit;
   transition: 0.2s ease;
 }
 
@@ -1753,6 +1794,14 @@ button {
   color: var(--text-soft);
 }
 
+.ranking-disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  border: 1px solid transparent;
+  text-align: left;
+  color: inherit;
+}
+
 .app-shell.light-theme .ranking-clickable strong {
   color: #0f172a;
 }
@@ -1761,28 +1810,6 @@ button {
   color: #2563eb;
 }
 
-/* =========================
-   CLICKABLE ANALYTICS PAPERS - FIX
-========================= */
-
-.ranking-clickable:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.empty-graph h2 {
-  color: var(--text-main);
-}
-
-.app-shell.light-theme .empty-graph h2 {
-  color: #0f172a;
-}
-
-.app-shell.light-theme .empty-graph p {
-  color: #2563eb;
-}
 
 /* =========================
    NETWORK PAPERS LIST PAGE
