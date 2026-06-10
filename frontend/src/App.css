@@ -2129,3 +2129,35 @@ button {
     width: 100%;
   }
 }
+
+/* =========================
+   FULL NETWORK LIST PAGINATION
+========================= */
+
+.network-column-title strong {
+  display: inline-block;
+  margin-top: 10px;
+  color: var(--text-soft);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.network-paper-column .pagination {
+  margin-top: 20px;
+  justify-content: flex-start;
+}
+
+.network-paper-column .pagination-btn {
+  min-width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  font-size: 12px;
+}
+
+.network-paper-column .network-paper-list {
+  max-height: 780px;
+}
+
+.app-shell.light-theme .network-column-title strong {
+  color: #2563eb;
+}

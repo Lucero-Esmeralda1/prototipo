@@ -1,14 +1,6 @@
 # =========================================================
 # EXTRACCIÓN DE METADATOS ACADÉMICOS — OPENALEX
-# Adaptado para ser usado como módulo por FastAPI
-# =========================================================
-
-
-
-
-# =========================================================
-# EXTRACCIÓN DE METADATOS ACADÉMICOS — OPENALEX
-# Búsqueda paginada + filtros para FastAPI
+# Búsqueda paginada + filtros + lista completa de referencias/citantes
 # =========================================================
 import math
 import requests
@@ -208,16 +200,71 @@ def get_paper_by_id(paper_id):
         return None
 
 
-def get_citing_papers(openalex_id, max_citing_papers=20):
+def get_papers_by_ids(openalex_ids):
+    papers = []
+
+    for openalex_id in openalex_ids:
+        paper = get_paper_by_id(openalex_id)
+
+        if paper:
+            papers.append(paper)
+
+    return papers
+
+
+def get_referenced_papers_paginated(openalex_id, page=1, per_page=20):
+    main_paper = get_paper_by_id(openalex_id)
+
+    if not main_paper:
+        return {
+            "papers": [],
+            "total": 0,
+            "page": int(page),
+            "per_page": int(per_page),
+            "total_pages": 0,
+        }
+
+    reference_ids = main_paper.get("references", []) or []
+    total = len(reference_ids)
+    page = int(page)
+    per_page = int(per_page)
+    total_pages = math.ceil(total / per_page) if per_page else 0
+
+    start = (page - 1) * per_page
+    end = start + per_page
+    page_reference_ids = reference_ids[start:end]
+
+    papers = get_papers_by_ids(page_reference_ids)
+
+    return {
+        "papers": papers,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": total_pages,
+    }
+
+
+def get_citing_papers_paginated(openalex_id, page=1, per_page=20):
     try:
         short_id = get_short_openalex_id(openalex_id)
 
         if not short_id:
-            return []
+            return {
+                "papers": [],
+                "total": 0,
+                "page": int(page),
+                "per_page": int(per_page),
+                "total_pages": 0,
+            }
+
+        page = int(page)
+        per_page = int(per_page)
 
         params = {
             "filter": f"cites:{short_id}",
-            "per-page": max_citing_papers,
+            "page": page,
+            "per-page": per_page,
             "sort": "cited_by_count:desc",
         }
 
@@ -228,174 +275,81 @@ def get_citing_papers(openalex_id, max_citing_papers=20):
         )
 
         if response.status_code != 200:
-            return []
+            return {
+                "papers": [],
+                "total": 0,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": 0,
+                "error": f"OpenAlex respondió con estado {response.status_code}",
+            }
 
         data = response.json()
+        meta = data.get("meta", {})
+        total = meta.get("count", 0)
+        total_pages = math.ceil(total / per_page) if per_page else 0
 
-        return [
+        papers = [
             normalize_paper(result)
             for result in data.get("results", [])
             if result
         ]
 
-    except Exception:
-        return []
+        papers = [paper for paper in papers if paper]
+
+        return {
+            "papers": papers,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": total_pages,
+        }
+
+    except Exception as e:
+        return {
+            "papers": [],
+            "total": 0,
+            "page": int(page),
+            "per_page": int(per_page),
+            "total_pages": 0,
+            "error": str(e),
+        }
 
 
-# import requests
-# from pyalex import Works
+def get_network_papers(
+    paper_id,
+    references_page=1,
+    references_per_page=20,
+    citing_page=1,
+    citing_per_page=20,
+):
+    main_paper = get_paper_by_id(paper_id)
+
+    references = get_referenced_papers_paginated(
+        paper_id,
+        page=references_page,
+        per_page=references_per_page,
+    )
+
+    citing_papers = get_citing_papers_paginated(
+        paper_id,
+        page=citing_page,
+        per_page=citing_per_page,
+    )
+
+    return {
+        "main_paper": main_paper,
+        "references": references,
+        "citing_papers": citing_papers,
+    }
 
 
-# def reconstruct_abstract(inverted_index):
-#     if not inverted_index:
-#         return ""
+# Mantengo esta función para que build_graph.py siga funcionando sin cambios.
+def get_citing_papers(openalex_id, max_citing_papers=20):
+    result = get_citing_papers_paginated(
+        openalex_id,
+        page=1,
+        per_page=max_citing_papers,
+    )
 
-#     word_positions = []
-
-#     for word, positions in inverted_index.items():
-#         for pos in positions:
-#             word_positions.append((pos, word))
-
-#     word_positions.sort()
-
-#     return " ".join([word for pos, word in word_positions])
-
-
-# def extract_authors(paper):
-#     authors = []
-
-#     for auth in paper.get("authorships", []):
-#         author_name = auth.get("author", {}).get("display_name", "")
-
-#         if author_name:
-#             authors.append(author_name)
-
-#     return list(set(authors))
-
-
-# def extract_institutions(paper):
-#     institutions = []
-
-#     for auth in paper.get("authorships", []):
-#         for inst in auth.get("institutions", []):
-#             inst_name = inst.get("display_name", "")
-
-#             if inst_name:
-#                 institutions.append(inst_name)
-
-#     return list(set(institutions))
-
-
-# def extract_topics(paper):
-#     topics = []
-
-#     for topic in paper.get("topics", []):
-#         topic_name = topic.get("display_name", "")
-
-#         if topic_name:
-#             topics.append(topic_name)
-
-#     return topics
-
-
-# def format_paper(paper):
-#     primary_location = paper.get("primary_location") or {}
-#     source = primary_location.get("source") or {}
-#     open_access = paper.get("open_access") or {}
-
-#     return {
-#         "paper_id": paper.get("id", ""),
-#         "title": paper.get("title", ""),
-#         "doi": paper.get("doi", ""),
-#         "year": paper.get("publication_year", ""),
-#         "publication_date": paper.get("publication_date", ""),
-#         "language": paper.get("language", ""),
-#         "type": paper.get("type", ""),
-#         "abstract": reconstruct_abstract(
-#             paper.get("abstract_inverted_index")
-#         ),
-#         "citation_count": paper.get("cited_by_count", 0),
-#         "references_count": len(paper.get("referenced_works", [])),
-#         "references": paper.get("referenced_works", []),
-#         "authors": extract_authors(paper),
-#         "institutions": extract_institutions(paper),
-#         "journal": source.get("display_name", ""),
-#         "publisher": source.get("host_organization_name", ""),
-#         "issn": source.get("issn_l", ""),
-#         "topics": extract_topics(paper),
-#         "open_access": open_access.get("is_oa", False),
-#         "pdf_url": open_access.get("oa_url", "")
-#     }
-
-
-# def search_papers(query, max_results=10):
-#     results = Works().search(query).get(per_page=max_results)
-
-#     papers = []
-
-#     for paper in results:
-#         papers.append(format_paper(paper))
-
-#     return papers
-
-
-# def get_paper_by_id(openalex_id):
-#     paper = Works()[openalex_id]
-#     return format_paper(paper)
-
-# def get_citing_papers(openalex_id, max_citing_papers=None):
-#     try:
-#         short_id = openalex_id.split("/")[-1]
-
-#         citing_papers = []
-#         cursor = "*"
-#         per_page = 200
-
-#         while True:
-#             params = {
-#                 "filter": f"cites:{short_id}",
-#                 "per-page": per_page,
-#                 "cursor": cursor
-#             }
-
-#             response = requests.get(
-#                 "https://api.openalex.org/works",
-#                 params=params,
-#                 timeout=30
-#             )
-
-#             if response.status_code != 200:
-#                 break
-
-#             data = response.json()
-#             results = data.get("results", [])
-
-#             if not results:
-#                 break
-
-#             for result in results:
-#                 citing_papers.append({
-#                     "id": result.get("id", ""),
-#                     "title": result.get("title", ""),
-#                     "doi": result.get("doi", ""),
-#                     "year": result.get("publication_year", ""),
-#                     "citation_count": result.get("cited_by_count", 0)
-#                 })
-
-#                 if max_citing_papers is not None and len(citing_papers) >= max_citing_papers:
-#                     return citing_papers
-
-#             next_cursor = data.get("meta", {}).get("next_cursor")
-
-#             if not next_cursor or next_cursor == cursor:
-#                 break
-
-#             cursor = next_cursor
-
-#         return citing_papers
-
-#     except Exception as e:
-#         print("Error obteniendo papers citantes:", e)
-#         return []
-    
-    
+    return result.get("papers", [])
