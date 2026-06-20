@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 
 import {
@@ -898,8 +898,8 @@ export default function App() {
       const response = await axios.get(`${API_URL}/api/graph`, {
         params: {
           paper_id: paperId,
-          max_references: 10,
-          max_citing: 10,
+          max_references: 20,
+          max_citing: 20,
         },
       });
 
@@ -976,6 +976,38 @@ export default function App() {
 
     window.open(url, "_blank", "noopener,noreferrer");
   };
+
+  // Clic en un nodo del grafo de citaciones:
+  // - Clic normal -> mantiene el detalle visible y, si es un paper
+  //   distinto al que ya está abierto, recarga el grafo centrado en él.
+  // - Ctrl/Cmd+clic -> abre el grafo de ese paper en una pestaña nueva,
+  //   sin perder el grafo actual.
+  // Memoizada con useCallback para que CitationGraph no reconstruya
+  // el grafo completo en cada render de App (solo cuando graphData
+  // realmente cambia), evitando que el listener de clic quede inestable.
+  const handleGraphNodeClick = useCallback(
+    (nodeData, options = {}) => {
+      setSelectedNode(nodeData);
+
+      const nodeId = nodeData?.id;
+      if (!nodeId || nodeData.type === "viewport_helper") return;
+
+      if (options.openInNewTab) {
+        openPaperInNewTab(nodeId);
+        return;
+      }
+
+      const currentPaperId =
+        graphData?.main_paper?.paper_id || graphData?.main_paper?.id || null;
+
+      // Si el nodo clicado ya es el paper principal del grafo actual,
+      // no hace falta recargar nada.
+      if (nodeData.type === "main_paper" || nodeId === currentPaperId) return;
+
+      loadGraphByPaperId(nodeId);
+    },
+    [graphData]
+  );
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1055,8 +1087,10 @@ export default function App() {
                     query={query}
                     setQuery={setQuery}
                     onSearch={() => handleSearch()}
+                    onSelectSuggestion={(suggestionQuery) => handleSearch(suggestionQuery)}
                     loading={loading}
                     onToggleFilters={() => setShowFilters((prev) => !prev)}
+                    apiUrl={API_URL}
                     t={t}
                   />
 
@@ -1147,7 +1181,7 @@ export default function App() {
 
                   <CitationGraph
                     graphData={graphData}
-                    onNodeClick={setSelectedNode}
+                    onNodeClick={handleGraphNodeClick}
                     t={t}
                   />
                 </section>

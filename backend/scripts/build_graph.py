@@ -4,8 +4,7 @@
 # =========================================================
 
 
-from pyalex import Works
-from scripts.extract_papers import get_paper_by_id, get_citing_papers
+from scripts.extract_papers import get_paper_by_id, get_papers_by_ids, get_citing_papers
 
 
 def build_citation_graph(openalex_id, max_references=None, max_citing=None):
@@ -30,31 +29,40 @@ def build_citation_graph(openalex_id, max_references=None, max_citing=None):
         "citation_count": main_paper["citation_count"]
     })
 
-    references = main_paper.get("references", [])
+    reference_ids = main_paper.get("references", [])
+
+    # Traemos los datos completos de TODAS las referencias para poder
+    # ordenarlas por relevancia (número de citas) antes de truncar.
+    # Así, si hay muchas más de las que se van a mostrar, las que
+    # se descartan son las menos citadas, no las primeras de la lista.
+    reference_papers = get_papers_by_ids(reference_ids)
+    reference_papers.sort(
+        key=lambda paper: paper.get("citation_count", 0) or 0,
+        reverse=True,
+    )
 
     if max_references is not None and max_references > 0:
-        references = references[:max_references]
+        reference_papers = reference_papers[:max_references]
 
-    for ref_id in references:
-        try:
-            ref_paper = Works()[ref_id]
+    for ref_paper in reference_papers:
+        ref_id = ref_paper.get("paper_id") or ref_paper.get("id")
 
-            add_node({
-                "id": ref_id,
-                "label": ref_paper.get("title", "Sin título"),
-                "type": "reference",
-                "year": ref_paper.get("publication_year", ""),
-                "citation_count": ref_paper.get("cited_by_count", 0)
-            })
+        if not ref_id:
+            continue
 
-            edges.append({
-                "source": main_paper["paper_id"],
-                "target": ref_id,
-                "relationship": "CITES"
-            })
+        add_node({
+            "id": ref_id,
+            "label": ref_paper.get("title", "Sin título"),
+            "type": "reference",
+            "year": ref_paper.get("year", ""),
+            "citation_count": ref_paper.get("citation_count", 0)
+        })
 
-        except Exception as e:
-            print("Error obteniendo referencia:", e)
+        edges.append({
+            "source": main_paper["paper_id"],
+            "target": ref_id,
+            "relationship": "CITES"
+        })
 
     citing_papers = get_citing_papers(
         openalex_id,
@@ -83,7 +91,7 @@ def build_citation_graph(openalex_id, max_references=None, max_citing=None):
         "summary": {
             "total_nodes": len(nodes),
             "total_edges": len(edges),
-            "total_references": len(references),
+            "total_references": len(reference_papers),
             "total_citing_papers": len(citing_papers),
             "main_paper_citations": main_paper["citation_count"]
         }

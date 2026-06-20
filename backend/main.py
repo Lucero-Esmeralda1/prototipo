@@ -5,7 +5,7 @@
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from scripts.extract_papers import search_papers, get_paper_by_id, get_network_papers
+from scripts.extract_papers import search_papers, get_paper_by_id, get_network_papers, get_search_suggestions
 from scripts.build_graph import build_citation_graph
 
 
@@ -54,6 +54,14 @@ def api_search(
     )
 
 
+@app.get("/api/suggestions")
+def api_suggestions(
+    query: str = Query(..., description="Texto parcial para sugerencias"),
+    limit: int = Query(8, ge=1, le=20, description="Máximo de sugerencias"),
+):
+    return get_search_suggestions(query=query, limit=limit)
+
+
 @app.get("/api/paper")
 def api_paper(
     paper_id: str = Query(..., description="ID de OpenAlex del paper")
@@ -68,8 +76,8 @@ def api_paper(
 @app.get("/api/graph")
 def api_graph(
     paper_id: str = Query(..., description="ID de OpenAlex del paper"),
-    max_references: int = Query(10, ge=0, le=50),
-    max_citing: int = Query(10, ge=0, le=50),
+    max_references: int = Query(20, ge=0, le=40),
+    max_citing: int = Query(20, ge=0, le=40),
 ):
     graph = build_citation_graph(
         paper_id,

@@ -6,6 +6,7 @@ import math
 import requests
 
 OPENALEX_WORKS_URL = "https://api.openalex.org/works"
+OPENALEX_AUTOCOMPLETE_URL = "https://api.openalex.org/autocomplete/works"
 
 
 def reconstruct_abstract(inverted_index):
@@ -201,15 +202,68 @@ def get_paper_by_id(paper_id):
 
 
 def get_papers_by_ids(openalex_ids):
-    papers = []
+    """
+    Trae varios papers en una sola petición a OpenAlex usando el
+    operador OR (|) sobre el filtro 'openalex'. Antes esto se hacía
+    con una petición HTTP por cada ID (muy lento con 20+ referencias).
+    OpenAlex permite hasta 100 IDs por llamada, así que dividimos
+    en lotes de 50 por seguridad.
+    """
+    openalex_ids = [oid for oid in (openalex_ids or []) if oid]
 
-    for openalex_id in openalex_ids:
-        paper = get_paper_by_id(openalex_id)
+    if not openalex_ids:
+        return []
+
+    BATCH_SIZE = 50
+    papers_by_short_id = {}
+
+    for i in range(0, len(openalex_ids), BATCH_SIZE):
+        batch = openalex_ids[i : i + BATCH_SIZE]
+        short_ids = [get_short_openalex_id(oid) for oid in batch]
+        short_ids = [sid for sid in short_ids if sid]
+
+        if not short_ids:
+            continue
+
+        try:
+            params = {
+                "filter": f"openalex:{'|'.join(short_ids)}",
+                "per-page": len(short_ids),
+            }
+
+            response = requests.get(
+                OPENALEX_WORKS_URL,
+                params=params,
+                timeout=20,
+            )
+
+            if response.status_code != 200:
+                continue
+
+            data = response.json()
+
+            for raw_paper in data.get("results", []):
+                normalized = normalize_paper(raw_paper)
+
+                if normalized and normalized.get("paper_id"):
+                    short_id = get_short_openalex_id(normalized["paper_id"])
+                    papers_by_short_id[short_id] = normalized
+
+        except Exception as e:
+            print("Error obteniendo lote de papers:", e)
+
+    # Devolvemos en el mismo orden en que llegaron los IDs originales,
+    # para no perder el orden de relevancia/citas ya calculado afuera.
+    ordered_papers = []
+
+    for original_id in openalex_ids:
+        short_original = get_short_openalex_id(original_id)
+        paper = papers_by_short_id.get(short_original)
 
         if paper:
-            papers.append(paper)
+            ordered_papers.append(paper)
 
-    return papers
+    return ordered_papers
 
 
 def get_referenced_papers_paginated(openalex_id, page=1, per_page=20):
@@ -342,6 +396,79 @@ def get_network_papers(
         "references": references,
         "citing_papers": citing_papers,
     }
+
+
+# =========================================================
+# SUGERENCIAS DE BÚSQUEDA — USA EL MISMO MOTOR QUE search_papers
+# En vez del endpoint /autocomplete (que mezcla datasets, scripts,
+# multimedia, etc.), usamos /works?search=, el mismo motor de
+# búsqueda real, pidiendo pocos resultados y ordenados por citas.
+# Así las sugerencias SON papers reales y consistentes con los
+# resultados que vas a ver al hacer la búsqueda completa.
+# =========================================================
+def get_search_suggestions(query, limit=6):
+    try:
+        query = (query or "").strip()
+
+        if len(query) < 2:
+            return {
+                "query": query,
+                "suggestions": [],
+            }
+
+        params = {
+            "search": query,
+            "page": 1,
+            "per-page": int(limit),
+            "sort": "relevance_score:desc",
+        }
+
+        response = requests.get(
+            OPENALEX_WORKS_URL,
+            params=params,
+            timeout=10,
+        )
+
+        if response.status_code != 200:
+            return {
+                "query": query,
+                "suggestions": [],
+                "error": f"OpenAlex respondió con estado {response.status_code}",
+            }
+
+        data = response.json()
+        results = data.get("results", [])
+
+        suggestions = []
+
+        for result in results:
+            normalized = normalize_paper(result)
+
+            if not normalized or not normalized.get("title"):
+                continue
+
+            authors = normalized.get("authors") or []
+            hint = ", ".join(authors[:2]) if authors else ""
+
+            suggestions.append({
+                "paper_id": normalized.get("paper_id", ""),
+                "title": normalized.get("title", ""),
+                "year": normalized.get("year", ""),
+                "citation_count": normalized.get("citation_count", 0),
+                "hint": hint,
+            })
+
+        return {
+            "query": query,
+            "suggestions": suggestions,
+        }
+
+    except Exception as e:
+        return {
+            "query": query,
+            "suggestions": [],
+            "error": str(e),
+        }
 
 
 # Mantengo esta función para que build_graph.py siga funcionando sin cambios.

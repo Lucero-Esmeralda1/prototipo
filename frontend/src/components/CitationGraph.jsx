@@ -1,49 +1,18 @@
 import { useEffect, useRef } from "react";
 import cytoscape from "cytoscape";
+import fcose from "cytoscape-fcose";
+
+cytoscape.use(fcose);
 
 export default function CitationGraph({ graphData, onNodeClick, t }) {
   const graphRef = useRef(null);
+  const cyRef = useRef(null);
 
   useEffect(() => {
     if (!graphData || !graphData.nodes || !graphData.edges) return;
     if (!graphRef.current) return;
 
-    const mainNodes = graphData.nodes.filter(
-      (node) => node.type === "main_paper"
-    );
-
-    const referenceNodes = graphData.nodes.filter(
-      (node) => node.type === "reference"
-    );
-
-    const citingNodes = graphData.nodes.filter(
-      (node) => node.type === "citing_paper"
-    );
-
-    const positions = {};
-
-    const mainNode = mainNodes[0];
-
-    if (mainNode) {
-      positions[mainNode.id] = { x: 0, y: 0 };
-    }
-
-    const placeVerticalSide = (nodes, side) => {
-      const gapY = 120;
-      const startY = -((nodes.length - 1) * gapY) / 2;
-
-      nodes.forEach((node, index) => {
-        positions[node.id] = {
-          x: side * 520,
-          y: startY + index * gapY,
-        };
-      });
-    };
-
-    placeVerticalSide(referenceNodes, -1);
-    placeVerticalSide(citingNodes, 1);
-
-    const realElements = [
+    const elements = [
       ...graphData.nodes.map((node) => ({
         data: {
           id: node.id,
@@ -52,7 +21,6 @@ export default function CitationGraph({ graphData, onNodeClick, t }) {
           year: node.year,
           citation_count: node.citation_count,
         },
-        position: positions[node.id] || { x: 0, y: 0 },
       })),
 
       ...graphData.edges.map((edge, index) => ({
@@ -65,59 +33,31 @@ export default function CitationGraph({ graphData, onNodeClick, t }) {
       })),
     ];
 
-    /*
-      Nodos invisibles para forzar el campo visual completo.
-      No representan papers reales.
-    */
-    const viewportHelpers = [
-      {
-        data: { id: "__left_bound", type: "viewport_helper" },
-        position: { x: -760, y: 0 },
-        selectable: false,
-        grabbable: false,
-      },
-      {
-        data: { id: "__right_bound", type: "viewport_helper" },
-        position: { x: 760, y: 0 },
-        selectable: false,
-        grabbable: false,
-      },
-      {
-        data: { id: "__top_bound", type: "viewport_helper" },
-        position: { x: 0, y: -620 },
-        selectable: false,
-        grabbable: false,
-      },
-      {
-        data: { id: "__bottom_bound", type: "viewport_helper" },
-        position: { x: 0, y: 620 },
-        selectable: false,
-        grabbable: false,
-      },
-    ];
-
     const cy = cytoscape({
       container: graphRef.current,
-      elements: [...realElements, ...viewportHelpers],
+      elements,
 
       style: [
         {
           selector: "node",
           style: {
             label: "data(label)",
-            color: "#ffffff",
+            color: "#e2e8f0",
             "background-color": "#8b5cf6",
-            width: 46,
-            height: 46,
-            "font-size": 8,
-            "font-weight": "bold",
+            width: 40,
+            height: 40,
+            "font-size": 9,
+            "font-family": "system-ui, sans-serif",
+            "font-weight": 500,
             "text-wrap": "wrap",
-            "text-max-width": 125,
+            "text-max-width": 120,
             "text-valign": "bottom",
             "text-halign": "center",
-            "text-margin-y": 8,
+            "text-margin-y": 6,
             "border-width": 2,
             "border-color": "#a78bfa",
+            "transition-property": "border-width, background-color",
+            "transition-duration": 120,
           },
         },
         {
@@ -125,14 +65,17 @@ export default function CitationGraph({ graphData, onNodeClick, t }) {
           style: {
             "background-color": "#2563eb",
             "border-color": "#60a5fa",
-            width: 100,
-            height: 100,
-            "font-size": 10,
-            "font-weight": "bold",
+            "border-width": 3,
+            width: 88,
+            height: 88,
+            color: "#ffffff",
+            "font-size": 11,
+            "font-weight": 700,
             "text-valign": "center",
             "text-halign": "center",
             "text-margin-y": 0,
-            "text-max-width": 115,
+            "text-max-width": 100,
+            "z-index": 10,
           },
         },
         {
@@ -150,25 +93,23 @@ export default function CitationGraph({ graphData, onNodeClick, t }) {
           },
         },
         {
-          selector: 'node[type = "viewport_helper"]',
+          selector: "node:active",
           style: {
-            width: 1,
-            height: 1,
-            opacity: 0,
-            label: "",
-            "background-opacity": 0,
-            "border-opacity": 0,
+            "overlay-opacity": 0,
           },
         },
         {
           selector: "edge",
           style: {
-            width: 1.8,
-            "line-color": "#64748b",
-            "target-arrow-color": "#64748b",
+            width: 1.4,
+            "line-color": "#475569",
+            "target-arrow-color": "#475569",
             "target-arrow-shape": "triangle",
+            "arrow-scale": 0.8,
             "curve-style": "bezier",
-            opacity: 0.75,
+            opacity: 0.5,
+            "transition-property": "opacity, line-color, width",
+            "transition-duration": 120,
           },
         },
         {
@@ -179,6 +120,22 @@ export default function CitationGraph({ graphData, onNodeClick, t }) {
             "z-index": 999,
           },
         },
+        {
+          selector: "node.hovered",
+          style: {
+            "border-width": 4,
+            "z-index": 998,
+          },
+        },
+        {
+          selector: "edge.highlighted",
+          style: {
+            "line-color": "#93c5fd",
+            "target-arrow-color": "#93c5fd",
+            opacity: 1,
+            width: 2.2,
+          },
+        },
       ],
 
       layout: {
@@ -186,30 +143,69 @@ export default function CitationGraph({ graphData, onNodeClick, t }) {
         fit: false,
       },
 
-      minZoom: 0.2,
-      maxZoom: 2.5,
+      minZoom: 0.15,
+      maxZoom: 3,
+      wheelSensitivity: 0.25,
+    });
+
+    cyRef.current = cy;
+
+    cy.on("mouseover", "node", (event) => {
+      const node = event.target;
+      node.addClass("hovered");
+      node.connectedEdges().addClass("highlighted");
+    });
+
+    cy.on("mouseout", "node", (event) => {
+      const node = event.target;
+      node.removeClass("hovered");
+      node.connectedEdges().removeClass("highlighted");
     });
 
     cy.on("tap", "node", (event) => {
       const node = event.target;
-
-      if (node.data("type") === "viewport_helper") return;
+      const nativeEvent = event.originalEvent;
 
       cy.nodes().unselect();
       node.select();
 
-      onNodeClick(node.data());
+      const nodeData = node.data();
+
+      const openInNewTab = Boolean(
+        nativeEvent && (nativeEvent.ctrlKey || nativeEvent.metaKey)
+      );
+
+      if (onNodeClick) {
+        onNodeClick(nodeData, { openInNewTab });
+      }
     });
+
+    const layoutInstance = cy.layout({
+      name: "fcose",
+      quality: "default",
+      randomize: true,
+      animate: false,
+      fit: false,
+      nodeRepulsion: 9000,
+      idealEdgeLength: 130,
+      edgeElasticity: 0.45,
+      nestingFactor: 0.1,
+      gravity: 0.35,
+      numIter: 2500,
+      fixedNodeConstraint: graphData.nodes
+        .filter((node) => node.type === "main_paper")
+        .map((node) => ({ nodeId: node.id, position: { x: 0, y: 0 } })),
+    });
+
+    layoutInstance.run();
 
     const timeoutId = setTimeout(() => {
       if (!cy || cy.destroyed()) return;
 
       cy.resize();
-
-      const visibleArea = cy.elements();
-      cy.fit(visibleArea, 90);
-      cy.center(visibleArea);
-    }, 150);
+      cy.fit(cy.elements(), 60);
+      cy.center(cy.elements());
+    }, 80);
 
     return () => {
       clearTimeout(timeoutId);
@@ -241,7 +237,8 @@ export default function CitationGraph({ graphData, onNodeClick, t }) {
       </div>
 
       <div className="graph-tools-outside">
-        {t.graphTools || "Arrastra para mover · Scroll para zoom · Clic en un nodo para ver detalles"}
+        {t.graphTools ||
+          "Arrastra para mover · Scroll para zoom · Clic en un nodo para explorar su grafo · Ctrl/Cmd+clic para abrir en pestaña nueva"}
       </div>
 
       <div className="graph-container" ref={graphRef}></div>
