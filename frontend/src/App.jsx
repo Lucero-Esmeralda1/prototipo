@@ -522,6 +522,7 @@ export default function App() {
   const [networkPerPage] = useState(20);
 
   const [graphData, setGraphData] = useState(null);
+  const [graphExpanding, setGraphExpanding] = useState(false);
   const [selectedPaper, setSelectedPaper] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -903,7 +904,13 @@ export default function App() {
         },
       });
 
-      setGraphData(response.data);
+      const initialMainId =
+        response.data?.main_paper?.paper_id || response.data?.main_paper?.id;
+
+      setGraphData({
+        ...response.data,
+        exploredIds: initialMainId ? [initialMainId] : [],
+      });
       setSelectedPaper(response.data?.main_paper || null);
     } catch (error) {
       console.error("Error construyendo grafo:", error);
@@ -977,14 +984,99 @@ export default function App() {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
+  // Expande el grafo actual a partir de un nodo que el usuario explora:
+  // pide las conexiones de ese paper y las FUSIONA con graphData existente,
+  // en vez de reemplazar todo el grafo (efecto "telaraña que crece").
+  // Los nodos ya presentes no se duplican; solo se agregan los nuevos.
+  const expandGraphFromPaperId = async (paperId) => {
+    if (!paperId) return;
+
+    // Si ya se exploró este nodo antes, no volvemos a pedir nada.
+    const alreadyExplored = graphData?.exploredIds?.includes(paperId);
+    if (alreadyExplored) return;
+
+    try {
+      setGraphExpanding(true);
+
+      const response = await axios.get(`${API_URL}/api/graph`, {
+        params: {
+          paper_id: paperId,
+          max_references: 15,
+          max_citing: 15,
+        },
+      });
+
+      const newData = response.data;
+      if (!newData?.main_paper) return;
+
+      const exploredNodeId =
+        newData.main_paper.paper_id || newData.main_paper.id;
+
+      setGraphData((prev) => {
+        if (!prev) return prev;
+
+        const existingNodeIds = new Set(prev.nodes.map((n) => n.id));
+        const existingEdgeKeys = new Set(
+          prev.edges.map((e) => `${e.source}->${e.target}`)
+        );
+
+        const mergedNodes = [...prev.nodes];
+        const mergedEdges = [...prev.edges];
+
+        for (const node of newData.nodes || []) {
+          // El nodo que se acaba de explorar ya existe en el grafo con
+          // su tipo real (reference/citing_paper respecto al paper
+          // principal original). El backend lo etiqueta "main_paper"
+          // porque construyó SU PROPIO grafo centrado en él, pero acá
+          // eso solo nos sirve para saber que ya quedó "explorado":
+          // no debe pisar su tipo/color original.
+          if (node.id === exploredNodeId) continue;
+
+          if (!existingNodeIds.has(node.id)) {
+            existingNodeIds.add(node.id);
+            // Conservamos el type real que dio el backend: es relativo
+            // al nodo que se acaba de explorar (si X cita a B, X llega
+            // como "citing_paper" porque ES citante DE B). Así, cuando
+            // un nodo se explora, sus propias conexiones se pintan con
+            // los mismos colores normales (verde/naranja) relativos a
+            // él, como un mini-centro propio dentro del grafo grande.
+            mergedNodes.push(node);
+          }
+        }
+
+        for (const edge of newData.edges || []) {
+          const key = `${edge.source}->${edge.target}`;
+          if (!existingEdgeKeys.has(key)) {
+            existingEdgeKeys.add(key);
+            mergedEdges.push(edge);
+          }
+        }
+
+        const exploredIds = Array.from(
+          new Set([...(prev.exploredIds || []), exploredNodeId])
+        );
+
+        return {
+          ...prev,
+          nodes: mergedNodes,
+          edges: mergedEdges,
+          exploredIds,
+        };
+      });
+    } catch (error) {
+      console.error("Error expandiendo el grafo:", error);
+    } finally {
+      setGraphExpanding(false);
+    }
+  };
+
   // Clic en un nodo del grafo de citaciones:
-  // - Clic normal -> mantiene el detalle visible y, si es un paper
-  //   distinto al que ya está abierto, recarga el grafo centrado en él.
+  // - Clic normal en un nodo NO explorado -> lo expande (fusiona sus
+  //   conexiones al grafo existente, como una telaraña que crece).
+  // - Clic normal en un nodo YA explorado -> no hace nada nuevo,
+  //   solo lo selecciona/resalta.
   // - Ctrl/Cmd+clic -> abre el grafo de ese paper en una pestaña nueva,
   //   sin perder el grafo actual.
-  // Memoizada con useCallback para que CitationGraph no reconstruya
-  // el grafo completo en cada render de App (solo cuando graphData
-  // realmente cambia), evitando que el listener de clic quede inestable.
   const handleGraphNodeClick = useCallback(
     (nodeData, options = {}) => {
       setSelectedNode(nodeData);
@@ -997,14 +1089,13 @@ export default function App() {
         return;
       }
 
-      const currentPaperId =
+      const mainPaperId =
         graphData?.main_paper?.paper_id || graphData?.main_paper?.id || null;
 
-      // Si el nodo clicado ya es el paper principal del grafo actual,
-      // no hace falta recargar nada.
-      if (nodeData.type === "main_paper" || nodeId === currentPaperId) return;
+      // El paper principal ya está explorado desde el inicio.
+      if (nodeId === mainPaperId) return;
 
-      loadGraphByPaperId(nodeId);
+      expandGraphFromPaperId(nodeId);
     },
     [graphData]
   );
@@ -1176,6 +1267,11 @@ export default function App() {
                       <span>
                         {graphData.edges?.length || 0} {t.relations}
                       </span>
+                      {graphExpanding && (
+                        <span className="graph-expanding-indicator">
+                          {t.expandingGraph || "Explorando..."}
+                        </span>
+                      )}
                     </div>
                   </div>
 

@@ -337,12 +337,19 @@ button {
 ========================= */
 
 .graph-page {
-  min-height: calc(100vh - 86px);
+  height: calc(100vh - 86px);
   display: flex;
   flex-direction: column;
   gap: 18px;
   padding: 20px;
-  overflow-y: auto;
+  /* IMPORTANTE: nunca usar overflow-y aquí. Cytoscape.js tiene un bug
+     conocido donde, si su contenedor está dentro de un ancestro con
+     scroll, los clics quedan desincronizados respecto a la posición
+     visual de los nodos (referencia: github.com/cytoscape/cytoscape.js-cxtmenu/issues/75).
+     En vez de scroll, usamos overflow:hidden y limitamos la altura
+     del grafo para que siempre quepa en la pantalla sin necesidad
+     de desplazarse. */
+  overflow: hidden;
   background: var(--bg-dark);
 }
 
@@ -350,6 +357,8 @@ button {
   width: 100%;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .graph-main {
@@ -405,6 +414,8 @@ button {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  flex: 1;
+  min-height: 0;
 }
 
 .graph-legend-outside {
@@ -446,13 +457,14 @@ button {
 
 .graph-container {
   width: 100%;
-  height: 620px;
+  flex: 1;
+  min-height: 320px;
   border: 1px solid var(--border);
   border-radius: 16px;
   background-color: #111827;
   background-image: radial-gradient(#334155 1px, transparent 1px);
   background-size: 18px 18px;
-  overflow: hidden;
+  position: relative;
 }
 
 .legend-box {
@@ -519,6 +531,9 @@ button {
 
 .details-bottom {
   width: 100%;
+  flex-shrink: 0;
+  max-height: 180px;
+  overflow-y: auto;
 }
 
 .details-panel {
@@ -2164,12 +2179,11 @@ button {
 
 
 
-/*      plus      */
 /* =========================================================
-ESTILOS PARA EL DROPDOWN DE SUGERENCIAS DE BÚSQUEDA
-Agregar este bloque a App.css (o al archivo de estilos
-donde ya estén las clases .search-row / .search-input-box)
-========================================================= */
+   ESTILOS PARA EL DROPDOWN DE SUGERENCIAS DE BÚSQUEDA
+   Agregar este bloque a App.css (o al archivo de estilos
+   donde ya estén las clases .search-row / .search-input-box)
+   ========================================================= */
 
 .search-input-box-wrapper {
   position: relative;
@@ -2242,4 +2256,10 @@ donde ya estén las clases .search-row / .search-input-box)
   font-size: 12px;
   text-align: left;
   width: 100%;
+}
+
+.graph-expanding-indicator {
+  color: #93c5fd;
+  font-size: 12px;
+  font-style: italic;
 }
