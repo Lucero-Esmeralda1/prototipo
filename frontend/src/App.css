@@ -337,19 +337,17 @@ button {
 ========================= */
 
 .graph-page {
-  height: calc(100vh - 86px);
+  min-height: calc(100vh - 86px);
   display: flex;
   flex-direction: column;
   gap: 18px;
   padding: 20px;
-  /* IMPORTANTE: nunca usar overflow-y aquí. Cytoscape.js tiene un bug
-     conocido donde, si su contenedor está dentro de un ancestro con
-     scroll, los clics quedan desincronizados respecto a la posición
-     visual de los nodos (referencia: github.com/cytoscape/cytoscape.js-cxtmenu/issues/75).
-     En vez de scroll, usamos overflow:hidden y limitamos la altura
-     del grafo para que siempre quepa en la pantalla sin necesidad
-     de desplazarse. */
-  overflow: hidden;
+  /* Antes este contenedor usaba overflow:hidden + altura fija para
+     evitar un bug de Cytoscape.js relacionado con scroll de
+     contenedores ancestros. Ya no usamos Cytoscape (migramos a
+     react-force-graph-2d), así que volvemos a un layout natural
+     que crece con su contenido y permite scroll normal. */
+  overflow-y: auto;
   background: var(--bg-dark);
 }
 
@@ -458,7 +456,7 @@ button {
 .graph-container {
   width: 100%;
   flex: 1;
-  min-height: 320px;
+  min-height: 520px;
   border: 1px solid var(--border);
   border-radius: 16px;
   background-color: #111827;
@@ -531,9 +529,6 @@ button {
 
 .details-bottom {
   width: 100%;
-  flex-shrink: 0;
-  max-height: 180px;
-  overflow-y: auto;
 }
 
 .details-panel {
