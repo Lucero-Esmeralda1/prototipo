@@ -65,6 +65,7 @@ export default function CitationGraph({ graphData, onNodeClick, t }) {
   const containerRef = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [hoveredNode, setHoveredNode] = useState(null);
+  const [isDraggingNode, setIsDraggingNode] = useState(false);
 
   // Mantiene el tamaño del lienzo sincronizado con el contenedor real.
   // IMPORTANTE: redondeamos a enteros con Math.round(). El navegador
@@ -134,6 +135,7 @@ export default function CitationGraph({ graphData, onNodeClick, t }) {
 
     const cache = nodeRefsCache.current;
     const seenIds = new Set();
+    const newNodeIds = [];
 
     const nodes = graphData.nodes.map((n) => {
       seenIds.add(n.id);
@@ -152,8 +154,80 @@ export default function CitationGraph({ graphData, onNodeClick, t }) {
       // caché para reutilizarlo en futuras exploraciones.
       const fresh = { ...n };
       cache.set(n.id, fresh);
+      newNodeIds.push(n.id);
       return fresh;
     });
+
+    // Posicionamos los nodos nuevos cerca de su "padre" (el nodo que
+    // se exploró y los reveló), en vez de dejar que aparezcan en el
+    // origen (0,0) y la física los empuje de cualquier forma. Esto
+    // mantiene cada rama agrupada visualmente cerca de donde se
+    // originó, en lugar de mezclarse con ramas de otras zonas del
+    // grafo.
+    if (newNodeIds.length > 0) {
+      const nodesById = new Map(nodes.map((n) => [n.id, n]));
+      const newIdSet = new Set(newNodeIds);
+
+      // Buscamos, para cada nodo nuevo, con quién se conecta que YA
+      // tenía posición (su "padre" real en esta expansión).
+      const parentOf = new Map();
+      for (const edge of graphData.edges || []) {
+        if (newIdSet.has(edge.target) && !newIdSet.has(edge.source)) {
+          parentOf.set(edge.target, edge.source);
+        } else if (newIdSet.has(edge.source) && !newIdSet.has(edge.target)) {
+          parentOf.set(edge.source, edge.target);
+        }
+      }
+
+      // Agrupamos los nodos nuevos por padre, para saber cuántos
+      // hermanos hay en total ANTES de calcular cualquier ángulo --
+      // así podemos repartir los 360° completos de forma uniforme
+      // entre ellos (un "girasol" parejo), en vez de avanzar en
+      // pasos fijos que pueden dar varias vueltas completas y
+      // amontonarse cuando hay muchos hermanos.
+      const childrenByParent = new Map();
+      for (const id of newNodeIds) {
+        const parentId = parentOf.get(id) || "__no_parent__";
+        if (!childrenByParent.has(parentId)) {
+          childrenByParent.set(parentId, []);
+        }
+        childrenByParent.get(parentId).push(id);
+      }
+
+      for (const [parentId, childIds] of childrenByParent) {
+        const parent = nodesById.get(parentId);
+        const total = childIds.length;
+
+        childIds.forEach((id, index) => {
+          const node = nodesById.get(id);
+          if (!node || node.x !== undefined) return; // ya tiene posición
+
+          if (parent && parent.x !== undefined) {
+            // Reparte los hermanos uniformemente en los 360°
+            // completos alrededor del padre, como pétalos de un
+            // girasol. Un pequeño desfase angular aleatorio evita que
+            // ramas distintas que comparten la misma cantidad de
+            // hijos se vean idénticas/alineadas entre sí.
+            const baseAngle = (2 * Math.PI * index) / total;
+            const angleJitter = (Math.random() - 0.5) * 0.15;
+            const angle = baseAngle + angleJitter;
+
+            // Distancia ligeramente variable para que el conjunto se
+            // vea más orgánico, sin perder el agrupamiento por rama.
+            const distance = 55 + Math.random() * 15;
+
+            node.x = parent.x + Math.cos(angle) * distance;
+            node.y = parent.y + Math.sin(angle) * distance;
+          } else {
+            // Sin padre identificable (caso límite): posición
+            // aleatoria pequeña cerca del centro, para que la física
+            // la acomode.
+            node.x = (Math.random() - 0.5) * 40;
+            node.y = (Math.random() - 0.5) * 40;
+          }
+        });
+      }
+    }
 
     // Limpiamos del caché los nodos que ya no están en el grafo
     // actual (por ejemplo, si se cargó un grafo completamente nuevo).
@@ -172,18 +246,46 @@ export default function CitationGraph({ graphData, onNodeClick, t }) {
   }, [graphData]);
 
   // Vecinos directos del último nodo explorado: estos son los que
-  // se pintan con color vivo (verde/naranja) en este momento.
+  // se pintan con color vivo (verde/naranja) y los que se mueven
+  // junto a él al arrastrarlo.
+  //
+  // IMPORTANTE: no calculamos esto recorriendo TODAS las edges
+  // acumuladas del grafo, porque eso incluiría también al nodo
+  // "padre" (el que se exploró antes para llegar al actual) si
+  // existe una edge entre ambos -- y ese padre no debería moverse
+  // ni iluminarse como si fuera un hijo recién revelado.
+  //
+  // En su lugar, usamos nodeCache[lastExploredId]: la respuesta
+  // exacta y sin ambigüedad que la API devolvió al explorar ESE
+  // nodo específico, que contiene solo sus hijos reales (referencias
+  // y citantes propios), sin importar qué edges acumuladas existan
+  // en el resto del grafo.
   const neighborsOfLast = useMemo(() => {
     const neighbors = new Set();
     if (!lastExploredId) return neighbors;
 
+    const cachedData = graphData?.nodeCache?.[lastExploredId];
+
+    if (cachedData?.nodes) {
+      for (const node of cachedData.nodes) {
+        const nodeId = node.paper_id || node.id;
+        if (nodeId && nodeId !== lastExploredId) {
+          neighbors.add(nodeId);
+        }
+      }
+      return neighbors;
+    }
+
+    // Respaldo (no debería ocurrir en uso normal, el caché siempre
+    // debería existir para el nodo en foco): si por algún motivo no
+    // hay datos en caché, recurrimos al cálculo anterior por edges.
     for (const edge of graphData?.edges || []) {
       if (edge.source === lastExploredId) neighbors.add(edge.target);
       if (edge.target === lastExploredId) neighbors.add(edge.source);
     }
 
     return neighbors;
-  }, [graphData?.edges, lastExploredId]);
+  }, [graphData?.nodeCache, graphData?.edges, lastExploredId]);
 
   const nodeCount = data.nodes.length;
 
@@ -237,29 +339,15 @@ export default function CitationGraph({ graphData, onNodeClick, t }) {
     return parts.join("\n");
   }, [t]);
 
-  // DETECCIÓN MANUAL DE CLICS, independiente del sistema interno de
-  // la librería (un canvas de sombra con colores únicos por objeto).
-  // Ese mecanismo interno presentó fallos inconsistentes en ciertos
-  // entornos/escalas de pantalla que no logramos resolver ajustando
-  // su configuración. En su lugar, calculamos nosotros mismos qué
-  // nodo está bajo el clic: convertimos la posición de cada nodo a
-  // coordenadas de pantalla con graph2ScreenCoords (un método nativo
-  // y confiable de la librería, ya verificado), y medimos la
-  // distancia real al punto del clic.
-  useEffect(() => {
-    const containerEl = containerRef.current;
-    if (!containerEl) return;
-
-    const handleClick = (event) => {
+  // Encuentra el nodo más cercano a una posición de pantalla dada
+  // (coordenadas relativas al canvas), dentro de su radio de
+  // detección. Función reutilizada por clic, hover, arrastre y
+  // clic derecho -- todos necesitan la misma lógica de "qué nodo
+  // está bajo este punto".
+  const findNodeAtPosition = useCallback(
+    (screenX, screenY) => {
       const fg = fgRef.current;
-      if (!fg) return;
-
-      const canvas = containerEl.querySelector("canvas");
-      if (!canvas) return;
-
-      const rect = canvas.getBoundingClientRect();
-      const clickX = event.clientX - rect.left;
-      const clickY = event.clientY - rect.top;
+      if (!fg) return null;
 
       let closestNode = null;
       let closestDist = Infinity;
@@ -268,54 +356,8 @@ export default function CitationGraph({ graphData, onNodeClick, t }) {
         if (node.x === undefined || node.y === undefined) continue;
 
         const screenPos = fg.graph2ScreenCoords(node.x, node.y);
-        const dx = screenPos.x - clickX;
-        const dy = screenPos.y - clickY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        const isMain = node.id === mainPaperId;
-        const hitRadius = getNodeRadius(isMain) + 6; // pequeño margen
-
-        if (dist <= hitRadius && dist < closestDist) {
-          closestDist = dist;
-          closestNode = node;
-        }
-      }
-
-      if (closestNode) {
-        handleNodeClick(closestNode, event);
-      }
-    };
-
-    containerEl.addEventListener("click", handleClick);
-    return () => containerEl.removeEventListener("click", handleClick);
-  }, [data.nodes, mainPaperId, handleNodeClick]);
-
-  // Mismo enfoque de detección manual para el hover (necesario para
-  // el tooltip nativo y el efecto visual de "nodo bajo el cursor").
-  useEffect(() => {
-    const containerEl = containerRef.current;
-    if (!containerEl) return;
-
-    const handleMouseMove = (event) => {
-      const fg = fgRef.current;
-      if (!fg) return;
-
-      const canvas = containerEl.querySelector("canvas");
-      if (!canvas) return;
-
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = event.clientX - rect.left;
-      const mouseY = event.clientY - rect.top;
-
-      let closestNode = null;
-      let closestDist = Infinity;
-
-      for (const node of data.nodes) {
-        if (node.x === undefined || node.y === undefined) continue;
-
-        const screenPos = fg.graph2ScreenCoords(node.x, node.y);
-        const dx = screenPos.x - mouseX;
-        const dy = screenPos.y - mouseY;
+        const dx = screenPos.x - screenX;
+        const dy = screenPos.y - screenY;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         const isMain = node.id === mainPaperId;
@@ -327,17 +369,222 @@ export default function CitationGraph({ graphData, onNodeClick, t }) {
         }
       }
 
+      return closestNode;
+    },
+    [data.nodes, mainPaperId]
+  );
+
+  // SISTEMA UNIFICADO DE INTERACCIÓN: clic para explorar, mantener
+  // presionado y mover para arrastrar. Se diferencian por un umbral
+  // de movimiento (DRAG_THRESHOLD_PX): si el mouse se mueve menos de
+  // eso desde el mousedown, al soltar se considera un CLIC (explora
+  // el nodo); si se mueve más, se considera ARRASTRE (mueve el nodo
+  // o, si es el nodo en foco actual, mueve todo el grafo junto).
+  const DRAG_THRESHOLD_PX = 3;
+  const dragStateRef = useRef(null); // { node, startX, startY, isDragging, isPanningAll, lastX, lastY }
+
+  useEffect(() => {
+    const containerEl = containerRef.current;
+    if (!containerEl) return;
+
+    const getCanvasPos = (event) => {
+      const canvas = containerEl.querySelector("canvas");
+      if (!canvas) return null;
+      const rect = canvas.getBoundingClientRect();
+      return { x: event.clientX - rect.left, y: event.clientY - rect.top, canvas };
+    };
+
+    const handleMouseDown = (event) => {
+      if (event.button !== 0) return; // solo botón izquierdo
+      const pos = getCanvasPos(event);
+      if (!pos) return;
+
+      const node = findNodeAtPosition(pos.x, pos.y);
+      if (!node) return; // clic en el fondo: lo maneja la librería (pan normal)
+
+      // Por ahora solo guardamos el estado inicial; todavía no
+      // decidimos si esto termina siendo un clic o un arrastre.
+      const isFocusNode = node.id === lastExploredId;
+
+      dragStateRef.current = {
+        node,
+        startX: pos.x,
+        startY: pos.y,
+        lastX: pos.x,
+        lastY: pos.y,
+        isDragging: false,
+        // Si arrastras el nodo actualmente en foco, se mueve junto
+        // con sus vecinos directos (sus "crías": referencias/
+        // citantes recién revelados), no el grafo completo. El resto
+        // de nodos más lejanos se quedan fijos en su lugar.
+        isPanningGroup: isFocusNode,
+        groupNodeIds: isFocusNode
+          ? new Set([node.id, ...neighborsOfLast])
+          : null,
+      };
+
+      // Detenemos el evento para que la librería no inicie su propio
+      // pan mientras decidimos qué hacer (ver nota sobre
+      // stopImmediatePropagation más abajo).
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+
+    const handleMouseMove = (event) => {
+      const pos = getCanvasPos(event);
+      if (!pos) return;
+
+      const drag = dragStateRef.current;
+
+      if (drag) {
+        const movedDist = Math.hypot(
+          pos.x - drag.startX,
+          pos.y - drag.startY
+        );
+
+        if (!drag.isDragging && movedDist > DRAG_THRESHOLD_PX) {
+          // Cruzamos el umbral: a partir de ahora es un arrastre, no
+          // un clic.
+          drag.isDragging = true;
+          setIsDraggingNode(true);
+          pos.canvas.style.cursor = "grabbing";
+
+          if (drag.isPanningGroup) {
+            // Fijamos el nodo en foco y sus vecinos directos en su
+            // posición actual antes de empezar a moverlos a mano.
+            // Sin esto, la física (que sigue corriendo por
+            // d3ReheatSimulation) puede tirar de alguno hacia otra
+            // posición al mismo tiempo que nosotros lo desplazamos.
+            for (const n of data.nodes) {
+              if (n.x === undefined || !drag.groupNodeIds.has(n.id)) continue;
+              n.fx = n.x;
+              n.fy = n.y;
+            }
+          } else {
+            drag.node.fx = drag.node.x;
+            drag.node.fy = drag.node.y;
+          }
+
+          fgRef.current?.d3ReheatSimulation();
+        }
+
+        if (drag.isDragging) {
+          const fg = fgRef.current;
+          if (!fg) return;
+
+          if (drag.isPanningGroup) {
+            // El nodo en foco y sus vecinos directos se mueven juntos,
+            // en la misma proporción de pantalla que se movió el
+            // mouse -- como un pequeño grupo que se desplaza, sin
+            // afectar al resto del grafo más lejano.
+            const dxScreen = pos.x - drag.lastX;
+            const dyScreen = pos.y - drag.lastY;
+
+            // Convertimos un desplazamiento de pantalla a un
+            // desplazamiento en coordenadas del grafo, comparando dos
+            // puntos cercanos (el origen y el desplazado).
+            const origin = fg.screen2GraphCoords(0, 0);
+            const shifted = fg.screen2GraphCoords(dxScreen, dyScreen);
+            const dxGraph = shifted.x - origin.x;
+            const dyGraph = shifted.y - origin.y;
+
+            for (const n of data.nodes) {
+              if (n.x === undefined || !drag.groupNodeIds.has(n.id)) continue;
+              n.x += dxGraph;
+              n.y += dyGraph;
+              n.fx = n.x;
+              n.fy = n.y;
+            }
+          } else {
+            const graphPos = fg.screen2GraphCoords(pos.x, pos.y);
+            drag.node.fx = graphPos.x;
+            drag.node.fy = graphPos.y;
+          }
+
+          drag.lastX = pos.x;
+          drag.lastY = pos.y;
+        }
+
+        return;
+      }
+
+      // Sin arrastre activo: cursor normal, solo actualizamos hover
+      // y tooltip. No mostramos ninguna mano de forma permanente --
+      // solo aparece mientras de verdad se está arrastrando algo.
+      const closestNode = findNodeAtPosition(pos.x, pos.y);
+
       setHoveredNode((prev) => {
         if (prev?.id === closestNode?.id) return prev;
         return closestNode;
       });
 
-      canvas.title = closestNode ? getNodeTooltip(closestNode) : "";
+      pos.canvas.title = closestNode ? getNodeTooltip(closestNode) : "";
+      pos.canvas.style.cursor = "default";
     };
 
+    const handleMouseUp = (event) => {
+      const drag = dragStateRef.current;
+      if (!drag) return;
+
+      // Verificación de respaldo: si el movimiento fue muy rápido,
+      // es posible que el navegador no haya generado suficientes
+      // eventos "mousemove" intermedios para que detectáramos el
+      // cruce del umbral a tiempo. Por seguridad, medimos también
+      // aquí la distancia real entre el punto inicial y el final.
+      const pos = getCanvasPos(event);
+      const finalDist = pos
+        ? Math.hypot(pos.x - drag.startX, pos.y - drag.startY)
+        : 0;
+      const wasActuallyDragged = drag.isDragging || finalDist > DRAG_THRESHOLD_PX;
+
+      if (wasActuallyDragged) {
+        // Fue un arrastre real: el nodo (o todo el grafo) se queda
+        // exactamente donde se soltó, sin rebote -- no liberamos
+        // fx/fy, así la física no lo vuelve a atraer a su posición
+        // "natural" según sus conexiones.
+        //
+        // Si el umbral se detectó solo aquí (no durante mousemove),
+        // todavía no se aplicó ningún movimiento real -- en ese caso
+        // no hay nada que mover, simplemente evitamos que se dispare
+        // la exploración por error.
+        setIsDraggingNode(false);
+      } else {
+        // Nunca cruzó el umbral de movimiento: fue un clic real,
+        // dispara la exploración normal del nodo.
+        handleNodeClick(drag.node, event);
+      }
+
+      dragStateRef.current = null;
+    };
+
+    // IMPORTANTE: "mousedown" se registra en fase de CAPTURA (tercer
+    // argumento true), no de burbujeo. La librería usa d3-drag/d3-zoom
+    // internamente sobre el propio canvas para su sistema de pan, y
+    // esas utilidades llaman a event.stopImmediatePropagation() para
+    // bloquear cualquier otro listener -- incluyendo los que están en
+    // elementos padres, en fase de burbujeo normal. Capturando el
+    // evento ANTES de que llegue al canvas (de afuera hacia adentro,
+    // que es como funciona la fase de captura) nuestro código se
+    // ejecuta primero, y puede decidir si el evento es para nuestro
+    // sistema (clic/arrastre de nodo) o dejarlo pasar para el pan
+    // normal del fondo vacío.
+    containerEl.addEventListener("mousedown", handleMouseDown, true);
     containerEl.addEventListener("mousemove", handleMouseMove);
-    return () => containerEl.removeEventListener("mousemove", handleMouseMove);
-  }, [data.nodes, mainPaperId, getNodeTooltip]);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      containerEl.removeEventListener("mousedown", handleMouseDown, true);
+      containerEl.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [
+    findNodeAtPosition,
+    lastExploredId,
+    neighborsOfLast,
+    getNodeTooltip,
+    handleNodeClick,
+    data.nodes,
+  ]);
 
   const paintNode = useCallback(
     (node, ctx, globalScale) => {
@@ -483,7 +730,7 @@ export default function CitationGraph({ graphData, onNodeClick, t }) {
 
       <div className="graph-tools-outside">
         {t.graphTools ||
-          "Arrastra para mover · Scroll para zoom · Clic en un nodo gris para explorar sus conexiones · Ctrl/Cmd+clic para abrir en pestaña nueva"}
+          "Arrastra para mover el nodo o el grafo · Scroll para zoom · Clic para explorar un nodo gris · Clic derecho para eliminar · Ctrl/Cmd+clic para abrir en pestaña nueva"}
       </div>
 
       <div className="graph-container" ref={containerRef}>
@@ -502,6 +749,7 @@ export default function CitationGraph({ graphData, onNodeClick, t }) {
           nodeVal={getNodeVal}
           nodeCanvasObject={paintNode}
           enableNodeDrag={false}
+          enablePanInteraction={!isDraggingNode}
           cooldownTicks={150}
           d3AlphaDecay={0.025}
           d3VelocityDecay={0.4}
