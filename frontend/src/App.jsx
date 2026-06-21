@@ -910,6 +910,8 @@ export default function App() {
       setGraphData({
         ...response.data,
         exploredIds: initialMainId ? [initialMainId] : [],
+        lastExploredId: initialMainId || null,
+        nodeCache: initialMainId ? { [initialMainId]: response.data } : {},
       });
       setSelectedPaper(response.data?.main_paper || null);
     } catch (error) {
@@ -984,33 +986,43 @@ export default function App() {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  // Expande el grafo actual a partir de un nodo que el usuario explora:
-  // pide las conexiones de ese paper y las FUSIONA con graphData existente,
-  // en vez de reemplazar todo el grafo (efecto "telaraña que crece").
-  // Los nodos ya presentes no se duplican; solo se agregan los nuevos.
+  // Expande el grafo a partir de un nodo que el usuario explora.
+  // Modelo de colores:
+  // - exploredIds (acumulativo): TODOS los nodos que el usuario ya
+  //   clickeó alguna vez (incluyendo A). Se quedan marcados en azul
+  //   suave para siempre, con su título visible.
+  // - lastExploredId: el nodo que se acaba de explorar AHORA. Solo
+  //   SUS vecinos directos (referencias/citantes) se pintan con los
+  //   colores vivos normales (verde/amarillo).
+  // Todo lo que nunca se exploró se ve gris.
+  //
+  // Los datos de cada nodo que ya se exploró antes se guardan en
+  // graphData.nodeCache, para no volver a pedirlos a la API si el
+  // usuario regresa a explorar ese mismo nodo otra vez.
   const expandGraphFromPaperId = async (paperId) => {
     if (!paperId) return;
-
-    // Si ya se exploró este nodo antes, no volvemos a pedir nada.
-    const alreadyExplored = graphData?.exploredIds?.includes(paperId);
-    if (alreadyExplored) return;
 
     try {
       setGraphExpanding(true);
 
-      const response = await axios.get(`${API_URL}/api/graph`, {
-        params: {
-          paper_id: paperId,
-          max_references: 15,
-          max_citing: 15,
-        },
-      });
+      const cache = graphData?.nodeCache || {};
+      let newData = cache[paperId];
 
-      const newData = response.data;
+      // Solo pedimos a la API si no tenemos ya estos datos guardados.
+      if (!newData) {
+        const response = await axios.get(`${API_URL}/api/graph`, {
+          params: {
+            paper_id: paperId,
+            max_references: 15,
+            max_citing: 15,
+          },
+        });
+        newData = response.data;
+      }
+
       if (!newData?.main_paper) return;
 
-      const exploredNodeId =
-        newData.main_paper.paper_id || newData.main_paper.id;
+      const exploredNodeId = newData.main_paper.paper_id || newData.main_paper.id;
 
       setGraphData((prev) => {
         if (!prev) return prev;
@@ -1024,22 +1036,10 @@ export default function App() {
         const mergedEdges = [...prev.edges];
 
         for (const node of newData.nodes || []) {
-          // El nodo que se acaba de explorar ya existe en el grafo con
-          // su tipo real (reference/citing_paper respecto al paper
-          // principal original). El backend lo etiqueta "main_paper"
-          // porque construyó SU PROPIO grafo centrado en él, pero acá
-          // eso solo nos sirve para saber que ya quedó "explorado":
-          // no debe pisar su tipo/color original.
           if (node.id === exploredNodeId) continue;
 
           if (!existingNodeIds.has(node.id)) {
             existingNodeIds.add(node.id);
-            // Conservamos el type real que dio el backend: es relativo
-            // al nodo que se acaba de explorar (si X cita a B, X llega
-            // como "citing_paper" porque ES citante DE B). Así, cuando
-            // un nodo se explora, sus propias conexiones se pintan con
-            // los mismos colores normales (verde/naranja) relativos a
-            // él, como un mini-centro propio dentro del grafo grande.
             mergedNodes.push(node);
           }
         }
@@ -1052,6 +1052,8 @@ export default function App() {
           }
         }
 
+        // Acumulativo: agregamos este nodo al historial de explorados,
+        // sin quitar los anteriores.
         const exploredIds = Array.from(
           new Set([...(prev.exploredIds || []), exploredNodeId])
         );
@@ -1061,6 +1063,8 @@ export default function App() {
           nodes: mergedNodes,
           edges: mergedEdges,
           exploredIds,
+          lastExploredId: exploredNodeId,
+          nodeCache: { ...cache, [paperId]: newData },
         };
       });
     } catch (error) {
@@ -1089,12 +1093,10 @@ export default function App() {
         return;
       }
 
-      const mainPaperId =
-        graphData?.main_paper?.paper_id || graphData?.main_paper?.id || null;
-
-      // El paper principal ya está explorado desde el inicio.
-      if (nodeId === mainPaperId) return;
-
+      // Cualquier nodo (incluyendo el principal A) puede volver a
+      // explorarse: esto actualiza el foco para volver a iluminar
+      // sus vecinos directos. Como los datos ya están en caché, esto
+      // es instantáneo, sin pedir nada nuevo a la API.
       expandGraphFromPaperId(nodeId);
     },
     [graphData]

@@ -494,6 +494,10 @@ button {
   background: #f59e0b;
 }
 
+.dot.cyan {
+  background: #0ea5e9;
+}
+
 /* =========================
    EMPTY GRAPH
 ========================= */

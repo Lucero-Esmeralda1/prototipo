@@ -1,577 +1,476 @@
-import { useEffect, useRef } from "react";
-import cytoscape from "cytoscape";
-import fcose from "cytoscape-fcose";
+import { useRef, useMemo, useCallback, useEffect, useState } from "react";
+import ForceGraph2D from "react-force-graph-2d";
 
-cytoscape.use(fcose);
+// Paleta por tipo de nodo: color vivo cuando un nodo es vecino
+// directo del último nodo explorado (sus citas/citantes recién
+// reveladas). "border" es el aro del nodo.
+const COLORS = {
+  reference: { base: "#22c55e", border: "#86efac" },
+  citing_paper: { base: "#f59e0b", border: "#fcd34d" },
+};
 
-const GRAPH_STYLE = [
-  {
-    selector: "node",
-    style: {
-      label: "data(label)",
-      color: "#e2e8f0",
-      "background-color": "#8b5cf6",
-      width: 40,
-      height: 40,
-      "font-size": 9,
-      "font-family": "system-ui, sans-serif",
-      "font-weight": 500,
-      "text-wrap": "wrap",
-      "text-max-width": 120,
-      "text-valign": "bottom",
-      "text-halign": "center",
-      "text-margin-y": 6,
-      "border-width": 2,
-      "border-color": "#a78bfa",
-      "border-opacity": 1,
-      "transition-property":
-        "border-width, border-color, background-color, border-opacity",
-      "transition-duration": 300,
-    },
-  },
-  {
-    selector: 'node[type = "main_paper"]',
-    style: {
-      "background-color": "#2563eb",
-      "border-color": "#60a5fa",
-      "border-width": 3,
-      width: 88,
-      height: 88,
-      color: "#ffffff",
-      "font-size": 11,
-      "font-weight": 700,
-      "text-valign": "center",
-      "text-halign": "center",
-      "text-margin-y": 0,
-      "text-max-width": 100,
-      "z-index": 10,
-    },
-  },
-  {
-    selector: 'node[type = "reference"]',
-    style: {
-      "background-color": "#10b981",
-      "border-color": "#34d399",
-    },
-  },
-  {
-    selector: 'node[type = "citing_paper"]',
-    style: {
-      "background-color": "#f59e0b",
-      "border-color": "#fbbf24",
-    },
-  },
-  {
-    selector: 'node[type = "extended"]',
-    style: {
-      "background-color": "#0ea5e9",
-      "border-color": "#38bdf8",
-      width: 32,
-      height: 32,
-      "font-size": 8,
-    },
-  },
-  // Nodos ya explorados: mismo matiz de categoría pero más suave
-  // y apagado, como una señal tranquila de "esto ya está revisado".
-  {
-    selector: 'node.explored[type = "reference"]',
-    style: {
-      "background-color": "#0d3b2e",
-      "border-color": "#1d6e54",
-    },
-  },
-  {
-    selector: 'node.explored[type = "citing_paper"]',
-    style: {
-      "background-color": "#4a3107",
-      "border-color": "#92660f",
-    },
-  },
-  {
-    selector: 'node.explored[type = "main_paper"]',
-    style: {
-      "background-color": "#1e3a6e",
-      "border-color": "#3b67ad",
-    },
-  },
-  // Nodos que aún no se han explorado: anillo punteado/llamativo
-  // invitando al clic. Se quita en cuanto se exploran.
-  {
-    selector: "node.unexplored",
-    style: {
-      "border-width": 3,
-      "border-style": "dashed",
-      "border-opacity": 0.9,
-    },
-  },
-  {
-    selector: "node.unexplored.pulse-dim",
-    style: {
-      "border-opacity": 0.35,
-    },
-  },
-  {
-    selector: "node:active",
-    style: {
-      "overlay-opacity": 0,
-    },
-  },
-  {
-    selector: "edge",
-    style: {
-      width: 1.4,
-      "line-color": "#475569",
-      "target-arrow-color": "#475569",
-      "target-arrow-shape": "triangle",
-      "arrow-scale": 0.8,
-      "curve-style": "bezier",
-      opacity: 0.5,
-      "transition-property": "opacity, line-color, width",
-      "transition-duration": 200,
-    },
-  },
-  {
-    selector: "node:selected",
-    style: {
-      "border-width": 4,
-      "border-color": "#ffffff",
-      "border-style": "solid",
-      "z-index": 999,
-    },
-  },
-  {
-    selector: "node.hovered",
-    style: {
-      "border-width": 4,
-      "z-index": 998,
-    },
-  },
-  {
-    selector: "edge.highlighted",
-    style: {
-      "line-color": "#93c5fd",
-      "target-arrow-color": "#93c5fd",
-      opacity: 1,
-      width: 2.2,
-    },
-  },
-];
+// Azul suave: cualquier nodo (que no sea el principal) que el
+// usuario ya exploró alguna vez. Se acumula, no se pierde.
+const EXPLORED_COLOR = "#1e3a8a";
+const EXPLORED_BORDER = "#60a5fa";
 
-// Layout inicial: breadthfirst circular. Organiza el grafo en niveles
-// concéntricos a partir del paper principal (nivel 0 = centro,
-// nivel 1 = sus referencias/citantes, nivel 2 = extendidos), dando
-// una estructura de árbol limpia y ordenada en vez de una nube de
-// física libre que se amontona con muchos nodos.
-//
-// IMPORTANTE: pasamos boundingBox explícito calculado desde las
-// dimensiones reales del contenedor. Sin esto, breadthfirst usa
-// cy.extent() (el área visible de cámara en ESE instante), que justo
-// al inicializar Cytoscape puede no reflejar aún el tamaño final del
-// contenedor — dejando el círculo completo calculado y centrado en
-// una ventana equivocada, descentrado respecto al contenedor real.
-const breadthfirstLayoutOptions = (rootId, boundingBox) => ({
-  name: "breadthfirst",
-  roots: rootId ? [rootId] : undefined,
-  circle: true,
-  spacingFactor: 1.1,
-  avoidOverlap: true,
-  animate: false,
-  fit: false,
-  directed: false,
-  boundingBox,
-});
+// Celeste: color especial y fijo del paper principal A, distinto
+// del azul de los demás nodos ya explorados.
+const MAIN_COLOR = "#0ea5e9";
+const MAIN_BORDER = "#7dd3fc";
 
-// Layout para expansión incremental: fcose con física, pero dejando
-// fijo todo lo que ya existía. Aquí sí conviene física (no árbol
-// rígido) porque solo se está integrando un pequeño grupo nuevo
-// alrededor de un nodo concreto, no reorganizando todo el grafo.
-const expandLayoutOptions = (fixedNodes) => ({
-  name: "fcose",
-  quality: "default",
-  randomize: false,
-  animate: false,
-  fit: false,
-  nodeRepulsion: 7000,
-  idealEdgeLength: 110,
-  edgeElasticity: 0.45,
-  nestingFactor: 0.1,
-  gravity: 0.3,
-  numIter: 1200,
-  fixedNodeConstraint: fixedNodes,
-});
+// Gris neutro: nodos que nunca se han explorado y tampoco son
+// vecinos directos del último nodo explorado en este momento.
+const UNFOCUSED_COLOR = "#475569";
+const UNFOCUSED_BORDER = "#64748b";
+
+function getNodeRadius(isMain) {
+  return isMain ? 16 : 8;
+}
+
+// Determina el aspecto visual de un nodo según 4 capas, en orden
+// de prioridad:
+// 1. ¿Es el paper principal A? -> celeste, siempre
+// 2. ¿Ya fue explorado alguna vez (está en el historial)? -> azul
+// 3. ¿Es vecino directo del último nodo explorado ahora? -> color
+//    vivo de su tipo (verde si es referencia, naranja si es citante)
+// 4. Si no es ninguna de las anteriores -> gris, sin explorar
+function getNodeVisual(node, exploredIds, neighborsOfLast, mainPaperId) {
+  if (node.id === mainPaperId) {
+    return { fill: MAIN_COLOR, border: MAIN_BORDER, state: "main" };
+  }
+
+  const wasExplored = exploredIds.has(node.id);
+
+  if (wasExplored) {
+    return {
+      fill: EXPLORED_COLOR,
+      border: EXPLORED_BORDER,
+      state: "explored",
+    };
+  }
+
+  const isLiveNeighbor = neighborsOfLast.has(node.id);
+
+  if (isLiveNeighbor) {
+    const palette = COLORS[node.type] || COLORS.reference;
+    return { fill: palette.base, border: palette.border, state: "live" };
+  }
+
+  return { fill: UNFOCUSED_COLOR, border: UNFOCUSED_BORDER, state: "unfocused" };
+}
 
 export default function CitationGraph({ graphData, onNodeClick, t }) {
-  const graphRef = useRef(null);
-  const cyRef = useRef(null);
-  // Guarda qué IDs ya estaban pintados en el grafo, para distinguir
-  // entre "primera carga" (recrear todo) y "expansión" (solo agregar
-  // los elementos nuevos sin reordenar lo que ya existía).
-  const knownNodeIdsRef = useRef(new Set());
-  const pulseIntervalRef = useRef(null);
-  const resizeObserverRef = useRef(null);
+  const fgRef = useRef(null);
+  const containerRef = useRef(null);
+  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const [hoveredNode, setHoveredNode] = useState(null);
 
-  const applyExploredState = (cy) => {
-    const exploredIds = new Set(graphData?.exploredIds || []);
-
-    cy.nodes().forEach((node) => {
-      const isExplored = exploredIds.has(node.id());
-      const isHelper = node.data("type") === "viewport_helper";
-
-      if (isExplored || isHelper) {
-        node.removeClass("unexplored pulse-dim");
-        if (isExplored) node.addClass("explored");
-      } else {
-        node.removeClass("explored");
-        node.addClass("unexplored");
-      }
-    });
-  };
-
-  // Pulso sutil: alterna la opacidad del borde de los nodos sin
-  // explorar cada cierto tiempo, como una respiración suave que
-  // invita al clic sin ser una distracción constante.
-  const startPulse = (cy) => {
-    if (pulseIntervalRef.current) clearInterval(pulseIntervalRef.current);
-
-    pulseIntervalRef.current = setInterval(() => {
-      if (!cy || cy.destroyed()) return;
-      cy.nodes(".unexplored").toggleClass("pulse-dim");
-    }, 900);
-  };
-
-  const stopPulse = () => {
-    if (pulseIntervalRef.current) {
-      clearInterval(pulseIntervalRef.current);
-      pulseIntervalRef.current = null;
-    }
-  };
-
-  // Construye el grafo desde cero (primera carga o búsqueda nueva).
+  // Mantiene el tamaño del lienzo sincronizado con el contenedor real.
+  // IMPORTANTE: redondeamos a enteros con Math.round(). El navegador
+  // puede reportar anchos/altos con decimales (ej. 741.54px), y al
+  // multiplicar por un devicePixelRatio no entero (común en pantallas
+  // con escalado de Windows como 112.5% => devicePixelRatio 1.125),
+  // esa imprecisión de subpíxel se traduce en errores de varios
+  // píxeles en la conversión de coordenadas de clic -- justo el tipo
+  // de desajuste que afecta más a nodos pequeños que a nodos grandes
+  // como el principal, coincidiendo con el patrón de fallo observado.
   useEffect(() => {
-    if (!graphData || !graphData.nodes || !graphData.edges) return;
-    if (!graphRef.current) return;
+    if (!containerRef.current) return;
 
-    const incomingIds = new Set(graphData.nodes.map((n) => n.id));
-    const isFreshLoad =
-      !cyRef.current ||
-      cyRef.current.destroyed() ||
-      // Si ningún nodo nuevo coincide con los que ya conocíamos,
-      // es un grafo distinto (otra búsqueda), no una expansión.
-      ![...knownNodeIdsRef.current].some((id) => incomingIds.has(id));
-
-    if (!isFreshLoad) return; // la expansión la maneja el otro efecto
-
-    stopPulse();
-
-    if (cyRef.current && !cyRef.current.destroyed()) {
-      cyRef.current.destroy();
-    }
-
-    if (resizeObserverRef.current) {
-      resizeObserverRef.current.disconnect();
-      resizeObserverRef.current = null;
-    }
-
-    // Cytoscape espera que su contenedor esté vacío al inicializarse;
-    // cualquier resto de un render anterior puede desincronizar las
-    // coordenadas internas respecto a lo que se ve en pantalla.
-    graphRef.current.innerHTML = "";
-
-    const elements = [
-      ...graphData.nodes.map((node) => ({
-        data: {
-          id: node.id,
-          label: node.label,
-          type: node.type,
-          year: node.year,
-          citation_count: node.citation_count,
-        },
-      })),
-      ...graphData.edges.map((edge, index) => ({
-        data: {
-          id: `edge-${index}`,
-          source: edge.source,
-          target: edge.target,
-          relationship: edge.relationship,
-        },
-      })),
-    ];
-
-    const cy = cytoscape({
-      container: graphRef.current,
-      elements,
-      style: GRAPH_STYLE,
-      layout: { name: "preset", fit: false },
-      minZoom: 0.15,
-      maxZoom: 3,
-      // Suaviza la sensación de movimiento al hacer pan/zoom/drag.
-      motionBlur: true,
-      motionBlurOpacity: 0.18,
-      // Fuerza un ratio de píxeles 1:1 entre coordenadas CSS y el
-      // canvas interno. Sin esto, en pantallas/sistemas con escalado
-      // distinto de 100% (ej. 112.5% en Windows), el canvas dibuja en
-      // una resolución distinta a la que el navegador usa para
-      // calcular la posición del mouse, causando que el grafo se vea
-      // desplazado respecto a donde realmente se detectan los clics.
-      pixelRatio: 1,
-    });
-
-    cyRef.current = cy;
-    knownNodeIdsRef.current = incomingIds;
-
-    // Mantiene las coordenadas internas de Cytoscape sincronizadas
-    // con el tamaño REAL del contenedor en todo momento, y además
-    // dispara el primer fit/center recién cuando el tamaño del
-    // contenedor se ESTABILIZA (deja de cambiar), en vez de confiar
-    // en un tiempo fijo arbitrario. En tu app real, React puede
-    // seguir ajustando el layout de otros paneles/sidebar después
-    // del montaje inicial; un timeout fijo corto puede ejecutarse
-    // mientras el contenedor todavía está cambiando de tamaño,
-    // dejando el grafo centrado respecto a un tamaño que no es
-    // el final.
-    let resizeDebounce = null;
-    let didInitialFit = false;
-
-    const performFit = () => {
-      if (!cy || cy.destroyed()) return;
-      cy.resize();
-      cy.fit(cy.elements(), 60);
-      cy.center(cy.elements());
-    };
-
-    resizeObserverRef.current = new ResizeObserver(() => {
-      if (resizeDebounce) clearTimeout(resizeDebounce);
-      resizeDebounce = setTimeout(() => {
-        if (!cy || cy.destroyed()) return;
-        cy.resize();
-
-        // El primer fit "real" ocurre cuando el tamaño ya se
-        // estabilizó (este callback se ejecuta tras 150ms sin
-        // nuevos cambios de tamaño), no en un tiempo fijo arbitrario.
-        if (!didInitialFit) {
-          didInitialFit = true;
-          performFit();
-        }
-      }, 150);
-    });
-    resizeObserverRef.current.observe(graphRef.current);
-
-    // Salvaguarda extra: Cytoscape.js tiene un bug conocido donde,
-    // si su contenedor queda dentro de un ancestro con scroll, los
-    // clics quedan desincronizados respecto a la posición visual real
-    // (ver github.com/cytoscape/cytoscape.js-cxtmenu/issues/75). Ya
-    // eliminamos el scroll del contenedor padre directo (.graph-page),
-    // pero por si algún scroll de la página completa llegara a ocurrir
-    // de todos modos, forzamos un resize() para resincronizar.
-    const handleWindowScroll = () => {
-      if (!cy || cy.destroyed()) return;
-      cy.resize();
-    };
-    window.addEventListener("scroll", handleWindowScroll, true);
-
-    cy.on("mouseover", "node", (event) => {
-      const node = event.target;
-      node.addClass("hovered");
-      node.connectedEdges().addClass("highlighted");
-    });
-
-    cy.on("mouseout", "node", (event) => {
-      const node = event.target;
-      node.removeClass("hovered");
-      node.connectedEdges().removeClass("highlighted");
-    });
-
-    cy.on("tap", "node", (event) => {
-      const node = event.target;
-      const nativeEvent = event.originalEvent;
-
-      cy.nodes().unselect();
-      node.select();
-
-      const nodeData = node.data();
-      const openInNewTab = Boolean(
-        nativeEvent && (nativeEvent.ctrlKey || nativeEvent.metaKey)
-      );
-
-      if (onNodeClick) {
-        onNodeClick(nodeData, { openInNewTab });
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const width = Math.round(entry.contentRect.width);
+      const height = Math.round(entry.contentRect.height);
+      if (width > 0 && height > 0) {
+        setDimensions({ width, height });
       }
     });
 
-    const mainPaperNode = graphData.nodes.find(
-      (node) => node.type === "main_paper"
-    );
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
-    // Forzamos un resize ANTES de correr el layout, para que Cytoscape
-    // tenga las dimensiones reales y actuales del contenedor. Sin esto,
-    // el layout podría calcular su centro basándose en un tamaño viejo
-    // o por defecto, dejando el grafo descentrado respecto al cuadro
-    // visual real.
-    cy.resize();
+  const mainPaperId =
+    graphData?.main_paper?.paper_id || graphData?.main_paper?.id || null;
 
-    const containerWidth = graphRef.current.clientWidth || 800;
-    const containerHeight = graphRef.current.clientHeight || 600;
+  const exploredIds = useMemo(
+    () => new Set(graphData?.exploredIds || []),
+    [graphData?.exploredIds]
+  );
 
-    cy.layout(
-      breadthfirstLayoutOptions(mainPaperNode?.id, {
-        x1: 0,
-        y1: 0,
-        w: containerWidth,
-        h: containerHeight,
-      })
-    ).run();
-    applyExploredState(cy);
-    startPulse(cy);
+  const lastExploredId = graphData?.lastExploredId || mainPaperId;
+
+  // CRÍTICO: react-force-graph muta los objetos de nodo que recibe,
+  // agregándoles x/y/vx/vy calculados por la física. Si en cada
+  // exploración creamos OBJETOS NUEVOS para nodos que ya existían
+  // (con spread {...n}), la librería pierde la posición física ya
+  // calculada para ellos -- ve un objeto "nuevo" con el mismo id,
+  // pero sin sus propiedades de posición, y debe re-posicionarlo
+  // desde cero. Con cada exploración sucesiva esto reinicia más y
+  // más nodos, lo cual puede dejar el grafo en un estado inconsistente
+  // donde el dibujo visual y el área de detección de clic (que
+  // depende de la posición que la física calculó) se desincronizan.
+  //
+  // La solución: mantener un registro estable de referencias de
+  // objeto por id, reutilizando el MISMO objeto para nodos que ya
+  // existían (preservando su x/y/vx/vy), y creando objetos nuevos
+  // solo para ids que aparecen por primera vez.
+  const nodeRefsCache = useRef(new Map());
+
+  // Si cambia el paper principal (carga de un grafo nuevo, no una
+  // exploración), limpiamos por completo el caché de referencias:
+  // las posiciones físicas del grafo anterior no tienen sentido para
+  // un grafo distinto.
+  const prevMainPaperIdRef = useRef(mainPaperId);
+  if (prevMainPaperIdRef.current !== mainPaperId) {
+    nodeRefsCache.current.clear();
+    prevMainPaperIdRef.current = mainPaperId;
+  }
+
+  const data = useMemo(() => {
+    if (!graphData?.nodes) return { nodes: [], links: [] };
+
+    const cache = nodeRefsCache.current;
+    const seenIds = new Set();
+
+    const nodes = graphData.nodes.map((n) => {
+      seenIds.add(n.id);
+      const existing = cache.get(n.id);
+
+      if (existing) {
+        // Reutilizamos el mismo objeto (con su x/y/vx/vy ya calculados
+        // por la física), actualizando solo los campos de datos que
+        // pudieran haber cambiado (label, type, etc.), sin tocar
+        // las propiedades de posición que la física le agregó.
+        Object.assign(existing, n);
+        return existing;
+      }
+
+      // Nodo nuevo: se crea su objeto una sola vez y se guarda en
+      // caché para reutilizarlo en futuras exploraciones.
+      const fresh = { ...n };
+      cache.set(n.id, fresh);
+      return fresh;
+    });
+
+    // Limpiamos del caché los nodos que ya no están en el grafo
+    // actual (por ejemplo, si se cargó un grafo completamente nuevo).
+    for (const id of Array.from(cache.keys())) {
+      if (!seenIds.has(id)) cache.delete(id);
+    }
+
+    return {
+      nodes,
+      links: (graphData.edges || []).map((e) => ({
+        source: e.source,
+        target: e.target,
+        relationship: e.relationship,
+      })),
+    };
+  }, [graphData]);
+
+  // Vecinos directos del último nodo explorado: estos son los que
+  // se pintan con color vivo (verde/naranja) en este momento.
+  const neighborsOfLast = useMemo(() => {
+    const neighbors = new Set();
+    if (!lastExploredId) return neighbors;
+
+    for (const edge of graphData?.edges || []) {
+      if (edge.source === lastExploredId) neighbors.add(edge.target);
+      if (edge.target === lastExploredId) neighbors.add(edge.source);
+    }
+
+    return neighbors;
+  }, [graphData?.edges, lastExploredId]);
+
+  const nodeCount = data.nodes.length;
+
+  // Recentra/reencuadra el grafo cada vez que cambia el paper
+  // principal (carga nueva) O cuando el grafo crece por exploración
+  // (aparecen nodos nuevos). Sin esto, la cámara se queda fija en el
+  // encuadre de la carga inicial y los nodos nuevos pueden aparecer
+  // fuera de cuadro o con un zoom relativo extraño.
+  useEffect(() => {
+    if (!fgRef.current || !mainPaperId) return;
+
+    const chargeForce = fgRef.current.d3Force("charge");
+    if (chargeForce) {
+      chargeForce.strength(-220).distanceMax(900);
+    }
+
+    const linkForce = fgRef.current.d3Force("link");
+    if (linkForce) {
+      linkForce.distance(70);
+    }
 
     const timeoutId = setTimeout(() => {
-      if (!didInitialFit) {
-        didInitialFit = true;
-        performFit();
+      fgRef.current?.zoomToFit(400, 70);
+    }, 350);
+
+    return () => clearTimeout(timeoutId);
+  }, [mainPaperId, nodeCount]);
+
+  const handleNodeClick = useCallback(
+    (node, event) => {
+      if (!onNodeClick) return;
+      const openInNewTab = Boolean(event?.ctrlKey || event?.metaKey);
+      onNodeClick(node, { openInNewTab });
+    },
+    [onNodeClick]
+  );
+
+  // Tooltip nativo del navegador con el título completo (sin
+  // truncar) más año y número de citas -- aparece al pasar el mouse,
+  // sin saturar visualmente el grafo con texto largo permanente.
+  const getNodeTooltip = useCallback((node) => {
+    const title = node.label || node.title || t.noTitle || "Sin título";
+    const year = node.year || "";
+    const citations = Number(node.citation_count || 0).toLocaleString();
+    const citationsLabel = t.citations || "citas";
+
+    const parts = [title];
+    const meta = [year, `${citations} ${citationsLabel}`].filter(Boolean);
+    if (meta.length) parts.push(meta.join(" · "));
+
+    return parts.join("\n");
+  }, [t]);
+
+  // DETECCIÓN MANUAL DE CLICS, independiente del sistema interno de
+  // la librería (un canvas de sombra con colores únicos por objeto).
+  // Ese mecanismo interno presentó fallos inconsistentes en ciertos
+  // entornos/escalas de pantalla que no logramos resolver ajustando
+  // su configuración. En su lugar, calculamos nosotros mismos qué
+  // nodo está bajo el clic: convertimos la posición de cada nodo a
+  // coordenadas de pantalla con graph2ScreenCoords (un método nativo
+  // y confiable de la librería, ya verificado), y medimos la
+  // distancia real al punto del clic.
+  useEffect(() => {
+    const containerEl = containerRef.current;
+    if (!containerEl) return;
+
+    const handleClick = (event) => {
+      const fg = fgRef.current;
+      if (!fg) return;
+
+      const canvas = containerEl.querySelector("canvas");
+      if (!canvas) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const clickX = event.clientX - rect.left;
+      const clickY = event.clientY - rect.top;
+
+      let closestNode = null;
+      let closestDist = Infinity;
+
+      for (const node of data.nodes) {
+        if (node.x === undefined || node.y === undefined) continue;
+
+        const screenPos = fg.graph2ScreenCoords(node.x, node.y);
+        const dx = screenPos.x - clickX;
+        const dy = screenPos.y - clickY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        const isMain = node.id === mainPaperId;
+        const hitRadius = getNodeRadius(isMain) + 6; // pequeño margen
+
+        if (dist <= hitRadius && dist < closestDist) {
+          closestDist = dist;
+          closestNode = node;
+        }
       }
-    }, 600);
 
-    return () => {
-      clearTimeout(timeoutId);
-      stopPulse();
-
-      if (resizeObserverRef.current) {
-        resizeObserverRef.current.disconnect();
-        resizeObserverRef.current = null;
-      }
-
-      window.removeEventListener("scroll", handleWindowScroll, true);
-
-      // CRÍTICO: destruir la instancia de Cytoscape de ESTE montaje
-      // al desmontar. Sin esto, con StrictMode (que monta/desmonta/
-      // remonta cada componente una vez en desarrollo), la primera
-      // instancia de Cytoscape queda viva en memoria con sus propios
-      // listeners de eventos activos, mientras una segunda instancia
-      // se crea sobre el DOM ya limpiado. Visualmente solo se ve la
-      // segunda, pero la primera sigue "sintiendo" clics y movimientos
-      // de mouse con coordenadas basadas en un estado nunca actualizado
-      // — exactamente el síntoma de "el área sensible no coincide con
-      // lo que se ve".
-      if (cy && !cy.destroyed()) {
-        cy.destroy();
-      }
-
-      if (cyRef.current === cy) {
-        cyRef.current = null;
+      if (closestNode) {
+        handleNodeClick(closestNode, event);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graphData?.main_paper?.paper_id]);
 
-  // Expansión incremental: agrega SOLO los nodos/edges nuevos al
-  // grafo ya existente, sin destruirlo ni reordenar lo que ya estaba.
+    containerEl.addEventListener("click", handleClick);
+    return () => containerEl.removeEventListener("click", handleClick);
+  }, [data.nodes, mainPaperId, handleNodeClick]);
+
+  // Mismo enfoque de detección manual para el hover (necesario para
+  // el tooltip nativo y el efecto visual de "nodo bajo el cursor").
   useEffect(() => {
-    const cy = cyRef.current;
-    if (!cy || cy.destroyed() || !graphData) return;
+    const containerEl = containerRef.current;
+    if (!containerEl) return;
 
-    const incomingIds = new Set(graphData.nodes.map((n) => n.id));
-    const isFreshLoad = ![...knownNodeIdsRef.current].some((id) =>
-      incomingIds.has(id)
-    );
-    if (isFreshLoad) return; // ese caso lo maneja el efecto anterior
+    const handleMouseMove = (event) => {
+      const fg = fgRef.current;
+      if (!fg) return;
 
-    const newNodes = graphData.nodes.filter(
-      (n) => !knownNodeIdsRef.current.has(n.id)
-    );
+      const canvas = containerEl.querySelector("canvas");
+      if (!canvas) return;
 
-    if (newNodes.length === 0) {
-      applyExploredState(cy);
-      return;
-    }
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = event.clientX - rect.left;
+      const mouseY = event.clientY - rect.top;
 
-    const newNodeIds = new Set(newNodes.map((n) => n.id));
+      let closestNode = null;
+      let closestDist = Infinity;
 
-    cy.batch(() => {
-      newNodes.forEach((node) => {
-        // Buscamos un edge real que conecte este nodo nuevo con algún
-        // nodo que YA existía, para nacer cerca de él (no en el origen).
-        const connectingEdge = graphData.edges.find(
-          (e) =>
-            (e.source === node.id && knownNodeIdsRef.current.has(e.target)) ||
-            (e.target === node.id && knownNodeIdsRef.current.has(e.source))
-        );
+      for (const node of data.nodes) {
+        if (node.x === undefined || node.y === undefined) continue;
 
-        const neighborId = connectingEdge
-          ? connectingEdge.source === node.id
-            ? connectingEdge.target
-            : connectingEdge.source
-          : null;
+        const screenPos = fg.graph2ScreenCoords(node.x, node.y);
+        const dx = screenPos.x - mouseX;
+        const dy = screenPos.y - mouseY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
 
-        const neighbor = neighborId ? cy.getElementById(neighborId) : null;
-        const hasNeighborPosition = neighbor && neighbor.length > 0;
+        const isMain = node.id === mainPaperId;
+        const hitRadius = getNodeRadius(isMain) + 6;
 
-        cy.add({
-          data: {
-            id: node.id,
-            label: node.label,
-            type: node.type,
-            year: node.year,
-            citation_count: node.citation_count,
-          },
-          position: hasNeighborPosition
-            ? {
-                x: neighbor.position("x") + (Math.random() - 0.5) * 60,
-                y: neighbor.position("y") + (Math.random() - 0.5) * 60,
-              }
-            : { x: 0, y: 0 },
-        });
+        if (dist <= hitRadius && dist < closestDist) {
+          closestDist = dist;
+          closestNode = node;
+        }
+      }
+
+      setHoveredNode((prev) => {
+        if (prev?.id === closestNode?.id) return prev;
+        return closestNode;
       });
 
-      graphData.edges.forEach((edge, index) => {
-        const edgeId = `edge-${index}`;
-        if (cy.getElementById(edgeId).length) return;
-        if (!newNodeIds.has(edge.source) && !newNodeIds.has(edge.target)) return;
+      canvas.title = closestNode ? getNodeTooltip(closestNode) : "";
+    };
 
-        cy.add({
-          data: {
-            id: edgeId,
-            source: edge.source,
-            target: edge.target,
-            relationship: edge.relationship,
-          },
-        });
-      });
-    });
+    containerEl.addEventListener("mousemove", handleMouseMove);
+    return () => containerEl.removeEventListener("mousemove", handleMouseMove);
+  }, [data.nodes, mainPaperId, getNodeTooltip]);
 
-    knownNodeIdsRef.current = incomingIds;
+  const paintNode = useCallback(
+    (node, ctx, globalScale) => {
+      // save/restore asegura que NINGÚN estado del canvas (alpha,
+      // sombra, dash, etc.) se filtre de un nodo al siguiente. Sin
+      // esto, un estado mal restaurado en un nodo podía interferir
+      // con cómo se pinta el siguiente, incluyendo en el canvas
+      // oculto de detección de color que usa la librería para saber
+      // qué nodo está bajo el mouse.
+      ctx.save();
 
-    // Re-organiza solo localmente: deja fijo todo lo que ya estaba
-    // colocado y permite que los nodos nuevos encuentren su lugar.
-    const existingNodeIds = [...knownNodeIdsRef.current].filter(
-      (id) => !newNodeIds.has(id)
-    );
+      const isMain = node.id === mainPaperId;
+      const radius = getNodeRadius(isMain);
+      const visual = getNodeVisual(node, exploredIds, neighborsOfLast, mainPaperId);
+      const isHovered = hoveredNode?.id === node.id;
+      const isDimmed = visual.state === "unfocused";
 
-    const fixedNodes = existingNodeIds.map((id) => {
-      const node = cy.getElementById(id);
-      return {
-        nodeId: id,
-        position: { x: node.position("x"), y: node.position("y") },
-      };
-    });
+      // Sombra suave para dar profundidad a nodos que no están apagados.
+      if (!isDimmed) {
+        ctx.shadowColor = visual.fill;
+        ctx.shadowBlur = isHovered ? 14 : 7;
+      } else {
+        ctx.shadowBlur = 0;
+      }
 
-    cy.layout(expandLayoutOptions(fixedNodes)).run();
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI, false);
+      ctx.fillStyle = visual.fill;
+      ctx.globalAlpha = isDimmed ? 0.55 : 1;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
 
-    applyExploredState(cy);
+      // Borde: punteado y fino si nunca se exploró (invita al clic);
+      // sólido si ya se exploró o está en foco vivo ahora.
+      ctx.lineWidth = (isHovered ? 2.5 : isDimmed ? 1.2 : 1.8) / globalScale;
+      ctx.strokeStyle = visual.border;
+      ctx.globalAlpha = isDimmed ? 0.7 : 1;
 
-    setTimeout(() => {
-      if (!cy || cy.destroyed()) return;
-      cy.fit(cy.elements(), 60);
-    }, 60);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graphData]);
+      if (isDimmed) {
+        ctx.setLineDash([2.5 / globalScale, 2 / globalScale]);
+      } else {
+        ctx.setLineDash([]);
+      }
+
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+
+      // Anillo extra blanco al hacer hover, para feedback claro.
+      if (isHovered) {
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, radius + 2.5 / globalScale, 0, 2 * Math.PI, false);
+        ctx.lineWidth = 1.2 / globalScale;
+        ctx.strokeStyle = "#ffffff";
+        ctx.globalAlpha = 0.85;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      // Etiqueta: siempre visible para el principal, lo ya explorado
+      // (azul) y lo vivo (verde/naranja). Para lo gris, solo aparece
+      // con bastante zoom o al pasar el mouse, para no saturar.
+      const showLabel =
+        isMain || !isDimmed || isHovered || globalScale > 2.2;
+
+      if (showLabel) {
+        const fontSize = (isMain ? 13 : 10) / globalScale;
+        ctx.font = `${isMain ? "700" : "500"} ${fontSize}px system-ui, -apple-system, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+
+        const label = node.label || node.title || "";
+        const maxChars = isMain ? 42 : 30;
+        const truncated =
+          label.length > maxChars ? label.slice(0, maxChars) + "…" : label;
+
+        // Halo oscuro detrás del texto para que siempre sea legible
+        // sobre el fondo punteado, sin necesitar una caja sólida.
+        ctx.lineWidth = 3 / globalScale;
+        ctx.strokeStyle = "rgba(2, 6, 23, 0.85)";
+        ctx.lineJoin = "round";
+        ctx.strokeText(truncated, node.x, node.y + radius + 4 / globalScale);
+
+        ctx.fillStyle = isDimmed ? "#94a3b8" : "#f1f5f9";
+        ctx.fillText(truncated, node.x, node.y + radius + 4 / globalScale);
+      }
+
+      ctx.restore();
+    },
+    [exploredIds, neighborsOfLast, hoveredNode, mainPaperId]
+  );
+
+  // Tamaño del área de detección de clic/hover de cada nodo. En vez
+  // de pintar manualmente un área custom (nodePointerAreaPaint, que
+  // puede desincronizarse del dibujo visual en ciertas condiciones
+  // de zoom/escala), usamos nodeVal: el mecanismo nativo y soportado
+  // de la librería para esto, dimensionando el círculo de detección
+  // según si el nodo es el principal o no.
+  const getNodeVal = useCallback(
+    (node) => (node.id === mainPaperId ? 10 : 4),
+    [mainPaperId]
+  );
+
+  // El grafo es dirigido: una flecha de X hacia Y significa "X cita
+  // a Y" (relationship CITES) o "X es citado por Y" (CITED_BY), según
+  // cómo el backend armó el edge. Las líneas conectadas al foco actual
+  // se ven más claras; el resto, atenuadas.
+  const linkColor = useCallback(
+    (link) => {
+      const sourceId = typeof link.source === "object" ? link.source.id : link.source;
+      const targetId = typeof link.target === "object" ? link.target.id : link.target;
+
+      const sourceVisible =
+        exploredIds.has(sourceId) || neighborsOfLast.has(sourceId) || sourceId === mainPaperId;
+      const targetVisible =
+        exploredIds.has(targetId) || neighborsOfLast.has(targetId) || targetId === mainPaperId;
+
+      return sourceVisible && targetVisible ? "#94a3b8" : "#334155";
+    },
+    [exploredIds, neighborsOfLast, mainPaperId]
+  );
 
   return (
     <div className="graph-section-wrapper">
       <div className="graph-legend-outside">
         <h4>{t.graphLegend || "Legend"}</h4>
-
         <div className="legend-items">
           <span>
-            <i className="dot blue"></i> {t.selectedPaper}
+            <i className="dot cyan"></i> {t.selectedPaper}
+          </span>
+          <span>
+            <i className="dot blue"></i> {t.exploredPapers || "Ya explorados"}
           </span>
           <span>
             <i className="dot green"></i> {t.references}
@@ -584,10 +483,33 @@ export default function CitationGraph({ graphData, onNodeClick, t }) {
 
       <div className="graph-tools-outside">
         {t.graphTools ||
-          "Arrastra para mover · Scroll para zoom · Clic en un nodo con borde punteado para explorar sus conexiones · Ctrl/Cmd+clic para abrir en pestaña nueva"}
+          "Arrastra para mover · Scroll para zoom · Clic en un nodo gris para explorar sus conexiones · Ctrl/Cmd+clic para abrir en pestaña nueva"}
       </div>
 
-      <div className="graph-container" ref={graphRef}></div>
+      <div className="graph-container" ref={containerRef}>
+        <ForceGraph2D
+          ref={fgRef}
+          width={dimensions.width}
+          height={dimensions.height}
+          graphData={data}
+          nodeId="id"
+          backgroundColor="transparent"
+          linkColor={linkColor}
+          linkWidth={1.2}
+          linkDirectionalArrowLength={5}
+          linkDirectionalArrowRelPos={1}
+          linkCurvature={0.18}
+          nodeVal={getNodeVal}
+          nodeCanvasObject={paintNode}
+          enableNodeDrag={false}
+          cooldownTicks={150}
+          d3AlphaDecay={0.025}
+          d3VelocityDecay={0.4}
+          warmupTicks={50}
+          minZoom={0.3}
+          maxZoom={8}
+        />
+      </div>
     </div>
   );
 }
