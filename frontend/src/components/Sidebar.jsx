@@ -5,7 +5,6 @@ import {
   Settings,
   Sun,
   Moon,
-  User,
   FileText,
 } from "lucide-react";
 
@@ -15,8 +14,6 @@ export default function Sidebar({
   theme,
   toggleTheme,
   openSettings,
-  openAuth,
-  currentUser,
   t,
 }) {
   return (
@@ -68,20 +65,6 @@ export default function Sidebar({
 
         <button className="nav-btn" onClick={openSettings} title={t.navSettings}>
           <Settings size={22} />
-        </button>
-
-        <button
-          className={currentUser ? "nav-btn user-btn logged" : "nav-btn user-btn"}
-          onClick={openAuth}
-          title={currentUser ? t.navAccount : t.navLogin}
-        >
-          {currentUser ? (
-            <span className="sidebar-initial">
-              {currentUser.fullName?.charAt(0)?.toUpperCase() || "U"}
-            </span>
-          ) : (
-            <User size={22} />
-          )}
         </button>
       </div>
     </aside>

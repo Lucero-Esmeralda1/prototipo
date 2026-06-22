@@ -3,18 +3,11 @@ import axios from "axios";
 
 import {
   X,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  User,
   Palette,
   Bell,
   Globe,
   Shield,
   Database,
-  LogOut,
-  Trash2,
 } from "lucide-react";
 
 import Sidebar from "./components/Sidebar";
@@ -36,8 +29,6 @@ const TRANSLATIONS = {
     navAnalytics: "Analíticas",
     navChangeTheme: "Cambiar tema",
     navSettings: "Configuración",
-    navAccount: "Mi cuenta",
-    navLogin: "Iniciar sesión",
     searchTitle: "Explora investigación científica",
     searchSubtitle: "Descubre papers y visualiza redes de citaciones",
     searchPlaceholder: "Buscar por título, DOI, autor, palabras clave o año...",
@@ -103,40 +94,7 @@ const TRANSLATIONS = {
     data: "Datos",
     exportData: "Exportar datos",
     exportDataText: "Descargar toda tu información en formato JSON",
-    deleteAccount: "Eliminar cuenta",
-    deleteAccountText: "Eliminar permanentemente tu cuenta y datos",
-    accountNotStarted: "Cuenta no iniciada",
-    accountNotStartedText: "Inicia sesión para administrar tus datos",
     close: "Cerrar",
-    loginTitle: "Iniciar sesión",
-    registerTitle: "Crear cuenta",
-    fullName: "Nombre completo",
-    email: "Correo electrónico",
-    password: "Contraseña",
-    minPassword: "Mínimo 6 caracteres",
-    loginButton: "Iniciar sesión",
-    registerButton: "Crear cuenta",
-    or: "o",
-    noAccount: "¿No tienes cuenta?",
-    alreadyAccount: "¿Ya tienes cuenta?",
-    registerHere: "Regístrate aquí",
-    loginHere: "Inicia sesión",
-    authTerms:
-      "Al continuar, aceptas nuestros Términos de Servicio y Política de Privacidad",
-    myAccount: "Mi cuenta",
-    registrationDate: "Fecha de registro",
-    notAvailable: "No disponible",
-    logout: "Cerrar sesión",
-    confirmDeleteAccount:
-      "¿Seguro que deseas eliminar tu cuenta? Esta acción no se puede deshacer.",
-    completeAllFields: "Completa todos los campos.",
-    validEmail: "Ingresa un correo válido.",
-    passwordMinError: "La contraseña debe tener mínimo 6 caracteres.",
-    emailExists: "Ya existe una cuenta con este correo.",
-    accountCreated: "Cuenta creada correctamente.",
-    enterEmailPassword: "Ingresa tu correo y contraseña.",
-    wrongCredentials: "Correo o contraseña incorrectos.",
-    loginSuccess: "Sesión iniciada correctamente.",
     searchError: "Error al buscar papers. Verifica que el backend esté activo.",
     graphLoadError:
       "No se pudo cargar el grafo del paper seleccionado. Verifica que el backend esté activo.",
@@ -187,8 +145,6 @@ const TRANSLATIONS = {
     navAnalytics: "Analytics",
     navChangeTheme: "Change theme",
     navSettings: "Settings",
-    navAccount: "My account",
-    navLogin: "Log in",
     searchTitle: "Explore scientific research",
     searchSubtitle: "Discover papers and visualize citation networks",
     searchPlaceholder: "Search by title, DOI, author, keywords, or year...",
@@ -254,40 +210,7 @@ const TRANSLATIONS = {
     data: "Data",
     exportData: "Export data",
     exportDataText: "Download all your information in JSON format",
-    deleteAccount: "Delete account",
-    deleteAccountText: "Permanently delete your account and data",
-    accountNotStarted: "No active account",
-    accountNotStartedText: "Log in to manage your data",
     close: "Close",
-    loginTitle: "Log in",
-    registerTitle: "Create account",
-    fullName: "Full name",
-    email: "Email",
-    password: "Password",
-    minPassword: "Minimum 6 characters",
-    loginButton: "Log in",
-    registerButton: "Create account",
-    or: "or",
-    noAccount: "Don’t have an account?",
-    alreadyAccount: "Already have an account?",
-    registerHere: "Register here",
-    loginHere: "Log in",
-    authTerms:
-      "By continuing, you accept our Terms of Service and Privacy Policy",
-    myAccount: "My account",
-    registrationDate: "Registration date",
-    notAvailable: "Not available",
-    logout: "Log out",
-    confirmDeleteAccount:
-      "Are you sure you want to delete your account? This action cannot be undone.",
-    completeAllFields: "Complete all fields.",
-    validEmail: "Enter a valid email.",
-    passwordMinError: "Password must have at least 6 characters.",
-    emailExists: "An account with this email already exists.",
-    accountCreated: "Account created successfully.",
-    enterEmailPassword: "Enter your email and password.",
-    wrongCredentials: "Incorrect email or password.",
-    loginSuccess: "Session started successfully.",
     searchError: "Error searching papers. Check that the backend is running.",
     graphLoadError:
       "Could not load the selected paper graph. Check that the backend is running.",
@@ -338,8 +261,6 @@ const TRANSLATIONS = {
     navAnalytics: "Análises",
     navChangeTheme: "Alterar tema",
     navSettings: "Configurações",
-    navAccount: "Minha conta",
-    navLogin: "Entrar",
     searchTitle: "Explore pesquisas científicas",
     searchSubtitle: "Descubra papers e visualize redes de citações",
     searchPlaceholder: "Pesquisar por título, DOI, autor, palavras-chave ou ano...",
@@ -353,7 +274,7 @@ const TRANSLATIONS = {
     noPaperSelected: "Nenhum paper selecionado",
     graphLoadingTitle: "Construindo grafo...",
     graphLoadingText: "Estamos consultando o OpenAlex e construindo a rede.",
-    graphEmptyText: "Pesquise um paper para visualizar sua rede de citações",
+    graphEmptyText: "Pesquise um paper para visualizar sua rede de citação",
     citationNetwork: "Rede de citações",
     selectedPaper: "Paper selecionado",
     nodes: "nós",
@@ -405,43 +326,10 @@ const TRANSLATIONS = {
     data: "Dados",
     exportData: "Exportar dados",
     exportDataText: "Baixar todas as suas informações em formato JSON",
-    deleteAccount: "Excluir conta",
-    deleteAccountText: "Excluir permanentemente sua conta e dados",
-    accountNotStarted: "Conta não iniciada",
-    accountNotStartedText: "Entre para gerenciar seus dados",
     close: "Fechar",
-    loginTitle: "Entrar",
-    registerTitle: "Criar conta",
-    fullName: "Nome completo",
-    email: "E-mail",
-    password: "Senha",
-    minPassword: "Mínimo de 6 caracteres",
-    loginButton: "Entrar",
-    registerButton: "Criar conta",
-    or: "ou",
-    noAccount: "Não tem conta?",
-    alreadyAccount: "Já tem conta?",
-    registerHere: "Cadastre-se aqui",
-    loginHere: "Entrar",
-    authTerms:
-      "Ao continuar, você aceita nossos Termos de Serviço e Política de Privacidade",
-    myAccount: "Minha conta",
-    registrationDate: "Data de cadastro",
-    notAvailable: "Não disponível",
-    logout: "Sair",
-    confirmDeleteAccount:
-      "Tem certeza de que deseja excluir sua conta? Esta ação não pode ser desfeita.",
-    completeAllFields: "Preencha todos os campos.",
-    validEmail: "Digite um e-mail válido.",
-    passwordMinError: "A senha deve ter pelo menos 6 caracteres.",
-    emailExists: "Já existe uma conta com este e-mail.",
-    accountCreated: "Conta criada corretamente.",
-    enterEmailPassword: "Digite seu e-mail e senha.",
-    wrongCredentials: "E-mail ou senha incorretos.",
-    loginSuccess: "Sessão iniciada corretamente.",
     searchError: "Erro ao pesquisar papers. Verifique se o backend está ativo.",
     graphLoadError:
-      "Não foi possível carregar o grafo do paper selecionado. Verifique se o backend está ativo.",
+      "Não foi possível carregar o grafo do paper seleccionado. Verifique se o backend está ativo.",
     networkLoadError:
       "Não foi possível carregar a lista completa de referências e papers citantes. Verifique se o backend tem o endpoint /api/network-papers.",
     topicKnowledgeGraph: "Grafo de conhecimento",
@@ -456,7 +344,7 @@ const TRANSLATIONS = {
     filterMinCitations: "Citações mínimas",
     filterApply: "Aplicar filtros",
     filterReset: "Redefinir",
-    highlyInfluential: "Altamente influente",
+    highlyInfluential: "Altamente influyente",
     unknownAuthors: "Autores desconhecidos",
     noAbstract: "Resumo não disponível.",
     noTopics: "Sem temas",
@@ -465,8 +353,8 @@ const TRANSLATIONS = {
     totalPapers: "Total de papers",
     totalCitations: "Total de citações",
     influentialPapers: "Papers influentes",
-    publicationsByYear: "Publicações por ano",
-    publicationsByYearDescription: "Mostra a distribuição temporal do paper principal, suas referências e os papers que o citaram.",
+    publicationsByYear: "Publicaciones por ano",
+    publicationsByYearDescription: "Mostra a distribuição temporal do paper principal, suas referências e os papers que lo citaram.",
     searchResults: "Resultados de pesquisa",
     networkComposition: "Composição da rede",
     mainPaperCitations: "Citações do paper principal",
@@ -488,10 +376,6 @@ export default function App() {
 
   const [theme, setTheme] = useState("dark");
   const [showSettings, setShowSettings] = useState(false);
-  const [showAuth, setShowAuth] = useState(false);
-  const [showAccount, setShowAccount] = useState(false);
-  const [authMode, setAuthMode] = useState("login");
-  const [currentUser, setCurrentUser] = useState(null);
 
   const [settings, setSettings] = useState({
     newPublications: true,
@@ -546,13 +430,8 @@ export default function App() {
   ];
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("researchgraph_current_user");
     const savedTheme = localStorage.getItem("researchgraph_theme");
     const savedSettings = localStorage.getItem("researchgraph_settings");
-
-    if (savedUser) {
-      setCurrentUser(JSON.parse(savedUser));
-    }
 
     if (savedTheme) {
       setTheme(savedTheme);
@@ -593,9 +472,7 @@ export default function App() {
 
   const handleExportData = () => {
     const exportData = {
-      currentUser,
       settings,
-      savedUsers: JSON.parse(localStorage.getItem("researchgraph_users") || "[]"),
       currentSearch: {
         query,
         papers,
@@ -619,180 +496,12 @@ export default function App() {
   };
 
   const openSettings = () => {
-    setShowAuth(false);
-    setShowAccount(false);
     setShowFilters(false);
     setShowSettings(true);
   };
 
-  const openAuth = () => {
-    setShowSettings(false);
-    setShowFilters(false);
-
-    if (currentUser) {
-      setShowAuth(false);
-      setShowAccount(true);
-    } else {
-      setShowAccount(false);
-      setAuthMode("login");
-      setShowAuth(true);
-    }
-  };
-
   const closeModals = () => {
     setShowSettings(false);
-    setShowAuth(false);
-    setShowAccount(false);
-  };
-
-  const getStoredUsers = () => {
-    const users = localStorage.getItem("researchgraph_users");
-    return users ? JSON.parse(users) : [];
-  };
-
-  const saveStoredUsers = (users) => {
-    localStorage.setItem("researchgraph_users", JSON.stringify(users));
-  };
-
-  const handleRegister = ({ fullName, email, password }) => {
-    const cleanName = fullName.trim();
-    const cleanEmail = email.trim().toLowerCase();
-
-    if (!cleanName || !cleanEmail || !password) {
-      return {
-        ok: false,
-        message: t.completeAllFields,
-      };
-    }
-
-    if (!cleanEmail.includes("@")) {
-      return {
-        ok: false,
-        message: t.validEmail,
-      };
-    }
-
-    if (password.length < 6) {
-      return {
-        ok: false,
-        message: t.passwordMinError,
-      };
-    }
-
-    const users = getStoredUsers();
-
-    const exists = users.some((user) => user.email === cleanEmail);
-
-    if (exists) {
-      return {
-        ok: false,
-        message: t.emailExists,
-      };
-    }
-
-    const newUser = {
-      id: crypto.randomUUID(),
-      fullName: cleanName,
-      email: cleanEmail,
-      password,
-      createdAt: new Date().toISOString(),
-    };
-
-    const updatedUsers = [...users, newUser];
-    saveStoredUsers(updatedUsers);
-
-    const sessionUser = {
-      id: newUser.id,
-      fullName: newUser.fullName,
-      email: newUser.email,
-      createdAt: newUser.createdAt,
-    };
-
-    localStorage.setItem(
-      "researchgraph_current_user",
-      JSON.stringify(sessionUser)
-    );
-
-    setCurrentUser(sessionUser);
-    setShowAuth(false);
-    setShowAccount(true);
-
-    return {
-      ok: true,
-      message: t.accountCreated,
-    };
-  };
-
-  const handleLogin = ({ email, password }) => {
-    const cleanEmail = email.trim().toLowerCase();
-
-    if (!cleanEmail || !password) {
-      return {
-        ok: false,
-        message: t.enterEmailPassword,
-      };
-    }
-
-    const users = getStoredUsers();
-
-    const user = users.find(
-      (item) => item.email === cleanEmail && item.password === password
-    );
-
-    if (!user) {
-      return {
-        ok: false,
-        message: t.wrongCredentials,
-      };
-    }
-
-    const sessionUser = {
-      id: user.id,
-      fullName: user.fullName,
-      email: user.email,
-      createdAt: user.createdAt,
-    };
-
-    localStorage.setItem(
-      "researchgraph_current_user",
-      JSON.stringify(sessionUser)
-    );
-
-    setCurrentUser(sessionUser);
-    setShowAuth(false);
-    setShowAccount(true);
-
-    return {
-      ok: true,
-      message: t.loginSuccess,
-    };
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("researchgraph_current_user");
-    setCurrentUser(null);
-    setShowAccount(false);
-    setShowAuth(true);
-    setAuthMode("login");
-  };
-
-  const handleDeleteAccount = () => {
-    if (!currentUser) return;
-
-    const confirmDelete = window.confirm(t.confirmDeleteAccount);
-
-    if (!confirmDelete) return;
-
-    const users = getStoredUsers();
-    const updatedUsers = users.filter((user) => user.id !== currentUser.id);
-
-    saveStoredUsers(updatedUsers);
-    localStorage.removeItem("researchgraph_current_user");
-
-    setCurrentUser(null);
-    setShowAccount(false);
-    setShowAuth(true);
-    setAuthMode("register");
   };
 
   const handleFilterChange = (key, value) => {
@@ -925,6 +634,7 @@ export default function App() {
 
   const getCurrentPaperId = () => {
     return (
+      graphData?.lastExploredId ||
       graphData?.main_paper?.paper_id ||
       graphData?.main_paper?.id ||
       selectedPaper?.paper_id ||
@@ -986,21 +696,8 @@ export default function App() {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  // Expande el grafo a partir de un nodo que el usuario explora.
-  // Modelo de colores:
-  // - exploredIds (acumulativo): TODOS los nodos que el usuario ya
-  //   clickeó alguna vez (incluyendo A). Se quedan marcados en azul
-  //   suave para siempre, con su título visible.
-  // - lastExploredId: el nodo que se acaba de explorar AHORA. Solo
-  //   SUS vecinos directos (referencias/citantes) se pintan con los
-  //   colores vivos normales (verde/amarillo).
-  // Todo lo que nunca se exploró se ve gris.
-  //
-  // Los datos de cada nodo que ya se exploró antes se guardan en
-  // graphData.nodeCache, para no volver a pedirlos a la API si el
-  // usuario regresa a explorar ese mismo nodo otra vez.
   const expandGraphFromPaperId = async (paperId) => {
-    if (!paperId) return;
+    if (!paperId) return null;
 
     try {
       setGraphExpanding(true);
@@ -1008,7 +705,6 @@ export default function App() {
       const cache = graphData?.nodeCache || {};
       let newData = cache[paperId];
 
-      // Solo pedimos a la API si no tenemos ya estos datos guardados.
       if (!newData) {
         const response = await axios.get(`${API_URL}/api/graph`, {
           params: {
@@ -1020,7 +716,7 @@ export default function App() {
         newData = response.data;
       }
 
-      if (!newData?.main_paper) return;
+      if (!newData?.main_paper) return null;
 
       const exploredNodeId = newData.main_paper.paper_id || newData.main_paper.id;
 
@@ -1052,8 +748,6 @@ export default function App() {
           }
         }
 
-        // Acumulativo: agregamos este nodo al historial de explorados,
-        // sin quitar los anteriores.
         const exploredIds = Array.from(
           new Set([...(prev.exploredIds || []), exploredNodeId])
         );
@@ -1067,24 +761,18 @@ export default function App() {
           nodeCache: { ...cache, [paperId]: newData },
         };
       });
+
+      return newData;
     } catch (error) {
       console.error("Error expandiendo el grafo:", error);
+      return null;
     } finally {
       setGraphExpanding(false);
     }
   };
 
-  // Clic en un nodo del grafo de citaciones:
-  // - Clic normal en un nodo NO explorado -> lo expande (fusiona sus
-  //   conexiones al grafo existente, como una telaraña que crece).
-  // - Clic normal en un nodo YA explorado -> no hace nada nuevo,
-  //   solo lo selecciona/resalta.
-  // - Ctrl/Cmd+clic -> abre el grafo de ese paper en una pestaña nueva,
-  //   sin perder el grafo actual.
   const handleGraphNodeClick = useCallback(
-    (nodeData, options = {}) => {
-      setSelectedNode(nodeData);
-
+    async (nodeData, options = {}) => {
       const nodeId = nodeData?.id;
       if (!nodeId || nodeData.type === "viewport_helper") return;
 
@@ -1093,11 +781,13 @@ export default function App() {
         return;
       }
 
-      // Cualquier nodo (incluyendo el principal A) puede volver a
-      // explorarse: esto actualiza el foco para volver a iluminar
-      // sus vecinos directos. Como los datos ya están en caché, esto
-      // es instantáneo, sin pedir nada nuevo a la API.
-      expandGraphFromPaperId(nodeId);
+      const fullData = await expandGraphFromPaperId(nodeId);
+      
+      if (fullData && fullData.main_paper) {
+        setSelectedNode(fullData.main_paper);
+      } else {
+        setSelectedNode(nodeData);
+      }
     },
     [graphData]
   );
@@ -1116,6 +806,16 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (activeView === "networkPapers") {
+      const currentId = getCurrentPaperId();
+      if (currentId) {
+        loadNetworkPapersByPaperId(currentId, 1, 1);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [graphData?.lastExploredId, activeView]);
 
   const changeView = (view) => {
     setShowFilters(false);
@@ -1138,8 +838,6 @@ export default function App() {
         theme={theme}
         toggleTheme={toggleTheme}
         openSettings={openSettings}
-        openAuth={openAuth}
-        currentUser={currentUser}
         t={t}
       />
 
@@ -1149,12 +847,6 @@ export default function App() {
             <h1>ResearchGraph</h1>
             <p>{t.appSubtitle}</p>
           </div>
-
-          {currentUser && (
-            <div className="topbar-user">
-              <span>{currentUser.fullName}</span>
-            </div>
-          )}
         </header>
 
         {activeView === "search" && (
@@ -1336,31 +1028,8 @@ export default function App() {
           toggleTheme={toggleTheme}
           settings={settings}
           updateSetting={updateSetting}
-          currentUser={currentUser}
           onClose={closeModals}
           onExportData={handleExportData}
-          onDeleteAccount={handleDeleteAccount}
-          t={t}
-        />
-      )}
-
-      {showAuth && (
-        <AuthModal
-          authMode={authMode}
-          setAuthMode={setAuthMode}
-          onClose={closeModals}
-          onLogin={handleLogin}
-          onRegister={handleRegister}
-          t={t}
-        />
-      )}
-
-      {showAccount && currentUser && (
-        <AccountModal
-          currentUser={currentUser}
-          onClose={closeModals}
-          onLogout={handleLogout}
-          onDeleteAccount={handleDeleteAccount}
           t={t}
         />
       )}
@@ -1589,10 +1258,8 @@ function SettingsModal({
   toggleTheme,
   settings,
   updateSetting,
-  currentUser,
   onClose,
   onExportData,
-  onDeleteAccount,
   t,
 }) {
   return (
@@ -1735,191 +1402,12 @@ function SettingsModal({
               <strong>{t.exportData}</strong>
               <span>{t.exportDataText}</span>
             </button>
-
-            {currentUser ? (
-              <button className="danger-action" onClick={onDeleteAccount}>
-                <strong>{t.deleteAccount}</strong>
-                <span>{t.deleteAccountText}</span>
-              </button>
-            ) : (
-              <button className="data-action disabled-action" disabled>
-                <strong>{t.accountNotStarted}</strong>
-                <span>{t.accountNotStartedText}</span>
-              </button>
-            )}
           </section>
         </div>
 
         <div className="popup-footer">
           <button className="popup-secondary-btn" onClick={onClose}>
             {t.close}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function AuthModal({ authMode, setAuthMode, onClose, onLogin, onRegister, t }) {
-  const isLogin = authMode === "login";
-
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const [showPassword, setShowPassword] = useState(false);
-  const [authMessage, setAuthMessage] = useState("");
-
-  const submitAuth = () => {
-    setAuthMessage("");
-
-    const result = isLogin
-      ? onLogin({ email, password })
-      : onRegister({ fullName, email, password });
-
-    if (!result.ok) {
-      setAuthMessage(result.message);
-    }
-  };
-
-  const changeMode = (mode) => {
-    setAuthMode(mode);
-    setAuthMessage("");
-    setFullName("");
-    setEmail("");
-    setPassword("");
-    setShowPassword(false);
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="auth-popup" onClick={(e) => e.stopPropagation()}>
-        <div className="popup-header">
-          <h2>{isLogin ? t.loginTitle : t.registerTitle}</h2>
-
-          <button className="popup-close" onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
-
-        <form className="auth-popup-form">
-          {!isLogin && (
-            <label>
-              {t.fullName}
-              <div className="input-icon-box">
-                <User size={17} />
-                <input
-                  type="text"
-                  placeholder="Juan Pérez"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
-              </div>
-            </label>
-          )}
-
-          <label>
-            {t.email}
-            <div className="input-icon-box">
-              <Mail size={17} />
-              <input
-                type="email"
-                placeholder="correo@ejemplo.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-          </label>
-
-          <label>
-            {t.password}
-            <div className="input-icon-box">
-              <Lock size={17} />
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-
-              <button
-                type="button"
-                className="password-eye-btn"
-                onClick={() => setShowPassword((prev) => !prev)}
-              >
-                {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-              </button>
-            </div>
-          </label>
-
-          {!isLogin && <p className="password-help">{t.minPassword}</p>}
-
-          {authMessage && <p className="auth-error">{authMessage}</p>}
-
-          <button type="button" className="auth-primary-btn" onClick={submitAuth}>
-            {isLogin ? t.loginButton : t.registerButton}
-          </button>
-        </form>
-
-        <div className="auth-divider">
-          <span>{t.or}</span>
-        </div>
-
-        <div className="auth-change">
-          {isLogin ? (
-            <p>
-              {t.noAccount} <button onClick={() => changeMode("register")}>{t.registerHere}</button>
-            </p>
-          ) : (
-            <p>
-              {t.alreadyAccount} <button onClick={() => changeMode("login")}>{t.loginHere}</button>
-            </p>
-          )}
-        </div>
-
-        <p className="auth-terms">{t.authTerms}</p>
-      </div>
-    </div>
-  );
-}
-
-function AccountModal({ currentUser, onClose, onLogout, onDeleteAccount, t }) {
-  const createdDate = currentUser?.createdAt
-    ? new Date(currentUser.createdAt).toLocaleDateString()
-    : t.notAvailable;
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="account-popup" onClick={(e) => e.stopPropagation()}>
-        <div className="popup-header">
-          <h2>{t.myAccount}</h2>
-
-          <button className="popup-close" onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
-
-        <div className="account-body">
-          <div className="account-avatar">
-            {currentUser.fullName?.charAt(0)?.toUpperCase() || "U"}
-          </div>
-
-          <h3>{currentUser.fullName}</h3>
-          <p>{currentUser.email}</p>
-
-          <div className="account-info-card">
-            <span>{t.registrationDate}</span>
-            <strong>{createdDate}</strong>
-          </div>
-
-          <button className="account-action-btn" onClick={onLogout}>
-            <LogOut size={17} />
-            {t.logout}
-          </button>
-
-          <button className="account-danger-btn" onClick={onDeleteAccount}>
-            <Trash2 size={17} />
-            {t.deleteAccount}
           </button>
         </div>
       </div>
